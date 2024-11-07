@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../firebase/config'
-import { signOut } from 'firebase/auth'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
 
 const router = useRouter()
 const isMenuOpen = ref(false)
 const searchQuery = ref('')
+const currentUser = ref(null) // Inicializa como null para garantir que o estado reativo funcione
 
+// Observa mudanças de estado de autenticação
+onAuthStateChanged(auth, (user) => {
+  currentUser.value = user
+})
+
+// Função de logout
 const handleLogout = async () => {
   try {
     await signOut(auth)
@@ -17,9 +24,9 @@ const handleLogout = async () => {
   }
 }
 
+// Função para lidar com a mudança de pesquisa
 const handleSearchChange = (e) => {
   searchQuery.value = e.target.value
-  // Chamar função para filtrar ou buscar pets com base no termo
 }
 </script>
 
@@ -52,7 +59,7 @@ const handleSearchChange = (e) => {
           <router-link to="/" class="text-white hover:text-gray-300">
             Início
           </router-link>
-          <template v-if="auth.currentUser">
+          <template v-if="currentUser">  <!-- Usa currentUser diretamente -->
             <router-link to="/profile" class="text-white hover:text-gray-300">
               Perfil
             </router-link>
