@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #009951;
+  --color-primary-hover: #007b3a;
+  --color-background: #B1D8B6;
+  --color-card: #CFF7D3;
+}
+
+body {
+  background-color: var(--color-background);
+  margin: 0;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.btn-primary {
+  @apply bg-[#009951] hover:bg-[#007b3a] text-white font-bold py-2 px-4 rounded transition-colors;
+}
+
+.card {
+  @apply bg-[#CFF7D3] rounded-lg shadow-md p-6;
+}
