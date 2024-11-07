@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { db, storage } from '../firebase/config'
+import { db } from '../firebase/config'
 import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export const usePetsStore = defineStore('pets', () => {
   const loading = ref(false)
@@ -13,15 +12,13 @@ export const usePetsStore = defineStore('pets', () => {
     error.value = null
     
     try {
-      // Upload image
-      const imageRef = storageRef(storage, `pets/${Date.now()}-${imageFile.name}`)
-      await uploadBytes(imageRef, imageFile)
-      const imageUrl = await getDownloadURL(imageRef)
+      // Convert image to base64
+      const base64Image = await convertToBase64(imageFile)
 
-      // Create pet document
+      // Create pet document with base64 image
       const petRef = await addDoc(collection(db, 'pets'), {
         ...petData,
-        imageUrl,
+        imageUrl: base64Image, // Store base64 image
         status: 'available',
         createdAt: new Date()
       })
@@ -33,6 +30,18 @@ export const usePetsStore = defineStore('pets', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // Helper function to convert image to base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        resolve(reader.result as string)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
   }
 
   const updatePetStatus = async (petId: string, status: string) => {
