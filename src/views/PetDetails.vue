@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase/config'
-import { doc, getDoc, collection, addDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, addDoc, updateDoc } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -16,6 +16,7 @@ const showAdoptionForm = ref(false)
 const adoptionReason = ref('')
 const error = ref('')
 
+// Carrega os detalhes do pet e do dono
 const fetchPetDetails = async () => {
   try {
     const petDoc = await getDoc(doc(db, 'pets', route.params.id as string))
@@ -33,6 +34,7 @@ const fetchPetDetails = async () => {
   }
 }
 
+// Envia a solicitação de adoção
 const handleAdoptionRequest = async () => {
   if (!authStore.user) {
     router.push('/login')
@@ -55,6 +57,17 @@ const handleAdoptionRequest = async () => {
     adoptionReason.value = ''
   } catch (e) {
     error.value = 'Erro ao enviar solicitação. Tente novamente.'
+  }
+}
+
+// Altera o status de disponibilidade do pet
+const toggleAvailability = async () => {
+  try {
+    const newStatus = pet.value.status === 'available' ? 'unavailable' : 'available'
+    await updateDoc(doc(db, 'pets', pet.value.id), { status: newStatus })
+    pet.value.status = newStatus
+  } catch (e) {
+    error.value = 'Erro ao alterar o status. Tente novamente.'
   }
 }
 
@@ -104,44 +117,60 @@ onMounted(fetchPetDetails)
           </ul>
         </div>
 
-        <div v-if="pet.status === 'available' && authStore.user?.uid !== pet.userId">
-          <button
-            v-if="!showAdoptionForm"
-            @click="showAdoptionForm = true"
+        <!-- Botão para alterar o status do pet (disponível apenas para o dono) -->
+        <div v-if="authStore.user?.uid === pet.userId">
+          <button @click="toggleAvailability" class="btn-primary w-full">
+            Alterar Status ({{ pet.status === 'available' ? 'Disponível' : 'Indisponível' }})
+          </button>
+        </div>
+
+        <!-- Botão de WhatsApp e opções de adoção para usuários que não são o dono -->
+        <div v-else>
+          <!-- Botão de WhatsApp para contato direto -->
+          <a
+            v-if="owner && owner.phone"
+            :href="`https://wa.me/${owner.phone.replace(/\D/g, '')}`"
+            target="_blank"
             class="btn-primary w-full"
           >
+            Quero Adotar via WhatsApp
+          </a>
+
+          <!-- Formulário de adoção para envio de mensagem -->
+          <div v-if="showAdoptionForm">
+            <form @submit.prevent="handleAdoptionRequest" class="card">
+              <h3 class="text-lg font-semibold mb-4">Solicitar Adoção</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">
+                    Por que você quer adotar {{ pet.name }}?
+                  </label>
+                  <textarea
+                    v-model="adoptionReason"
+                    required
+                    rows="4"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+                  ></textarea>
+                </div>
+                <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
+                <div class="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    @click="showAdoptionForm = false"
+                    class="btn-primary bg-gray-500 hover:bg-gray-600"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" class="btn-primary">Enviar Solicitação</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Botão para abrir o formulário de adoção -->
+          <button v-else @click="showAdoptionForm = true" class="btn-primary w-full">
             Quero Adotar
           </button>
-
-          <form v-else @submit.prevent="handleAdoptionRequest" class="card">
-            <h3 class="text-lg font-semibold mb-4">Solicitar Adoção</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">
-                  Por que você quer adotar {{ pet.name }}?
-                </label>
-                <textarea
-                  v-model="adoptionReason"
-                  required
-                  rows="4"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-                ></textarea>
-              </div>
-              <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-              <div class="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  @click="showAdoptionForm = false"
-                  class="btn-primary bg-gray-500 hover:bg-gray-600"
-                >
-                  Cancelar
-                </button>
-                <button type="submit" class="btn-primary">
-                  Enviar Solicitação
-                </button>
-              </div>
-            </div>
-          </form>
         </div>
       </div>
     </div>
