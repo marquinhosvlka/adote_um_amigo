@@ -52,7 +52,7 @@ const handleAdoptionRequest = async () => {
       status: 'pending',
       createdAt: new Date()
     })
-    
+
     showAdoptionForm.value = false
     adoptionReason.value = ''
   } catch (e) {
@@ -82,11 +82,7 @@ onMounted(fetchPetDetails)
   <div v-else-if="pet" class="max-w-4xl mx-auto">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div>
-        <img
-          :src="pet.imageUrl"
-          :alt="pet.name"
-          class="w-full h-96 object-cover rounded-lg shadow-lg"
-        />
+        <img :src="pet.imageUrl" :alt="pet.name" class="w-full h-96 object-cover rounded-lg shadow-lg" />
       </div>
 
       <div class="space-y-6">
@@ -127,12 +123,8 @@ onMounted(fetchPetDetails)
         <!-- Botão de WhatsApp e opções de adoção para usuários que não são o dono -->
         <div v-else>
           <!-- Botão de WhatsApp para contato direto -->
-          <a
-            v-if="owner && owner.phone"
-            :href="`https://wa.me/${owner.phone.replace(/\D/g, '')}`"
-            target="_blank"
-            class="btn-primary w-full"
-          >
+          <a v-if="owner && owner.phone" :href="`https://wa.me/${owner.phone.replace(/\D/g, '')}`" target="_blank"
+            class="btn-primary w-full">
             Quero Adotar via WhatsApp
           </a>
 
@@ -145,20 +137,13 @@ onMounted(fetchPetDetails)
                   <label class="block text-sm font-medium text-gray-700">
                     Por que você quer adotar {{ pet.name }}?
                   </label>
-                  <textarea
-                    v-model="adoptionReason"
-                    required
-                    rows="4"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-                  ></textarea>
+                  <textarea v-model="adoptionReason" required rows="4"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"></textarea>
                 </div>
                 <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
                 <div class="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    @click="showAdoptionForm = false"
-                    class="btn-primary bg-gray-500 hover:bg-gray-600"
-                  >
+                  <button type="button" @click="showAdoptionForm = false"
+                    class="btn-primary bg-gray-500 hover:bg-gray-600">
                     Cancelar
                   </button>
                   <button type="submit" class="btn-primary">Enviar Solicitação</button>
@@ -176,3 +161,11 @@ onMounted(fetchPetDetails)
     </div>
   </div>
 </template>
+<style>
+.btn-primary {
+  background-color: #009951;
+  border: black;
+  margin-top: 10px;
+
+}
+</style>
