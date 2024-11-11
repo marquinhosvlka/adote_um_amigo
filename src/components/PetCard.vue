@@ -11,7 +11,7 @@ const props = defineProps<{
     size: string
     city: string
     state: string
-    imageUrl: string // Esta imagem será base64
+    imageUrl: string 
     status: string
   }
 }>()

@@ -123,7 +123,7 @@ onMounted(fetchPetDetails)
         <!-- Botão de WhatsApp e opções de adoção para usuários que não são o dono -->
         <div v-else>
           <!-- Botão de WhatsApp para contato direto -->
-          <a v-if="owner && owner.phone" :href="`https://wa.me/${owner.phone.replace(/\D/g, '')}`" target="_blank"
+          <a v-if="owner && owner.phone" :href="`https://wa.me/+55${owner.phone.replace(/\D/g, '')}`" target="_blank"
             class="btn-primary w-full">
             Quero Adotar via WhatsApp
           </a>
