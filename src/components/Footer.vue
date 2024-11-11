@@ -5,7 +5,7 @@
           <span>Adote um Amigo - Todos os direitos reservados.</span>
         </p>
         <p class="text-xs mt-2">
-          Desenvolvido com ❤️ por [Seu Nome ou Sua Empresa]
+          Desenvolvido com ❤️ por Adote um Amigo
         </p>
       </div>
     </footer>
