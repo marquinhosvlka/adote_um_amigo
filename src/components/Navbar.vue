@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../firebase/config'
-import { signOut, onAuthStateChanged } from 'firebase/auth'
+import { signOut, onAuthStateChanged, User } from 'firebase/auth'
 
 const router = useRouter()
-const isMenuOpen = ref(false)
-const searchQuery = ref('')
-const currentUser = ref(null) // Inicializa como null para garantir que o estado reativo funcione
+const searchQuery = ref('') // Futura implementação da busca
+const currentUser = ref<User | null>(null) // Inicializa como null para garantir que o estado reativo funcione
 
 // Observa mudanças de estado de autenticação
 onAuthStateChanged(auth, (user) => {
@@ -25,8 +24,9 @@ const handleLogout = async () => {
 }
 
 // Função para lidar com a mudança de pesquisa
-const handleSearchChange = (e) => {
-  searchQuery.value = e.target.value
+const handleSearchChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  searchQuery.value = target.value
 }
 </script>
 
@@ -44,8 +44,8 @@ const handleSearchChange = (e) => {
             type="text"
             v-model="searchQuery"
             @input="handleSearchChange"
-            class="p-2 rounded-md border border-gray-300 w-64"
-            placeholder="Pesquise por nome, espécie ou cidade..."
+            placeholder="Buscar pets..."
+            class="p-2 border rounded-full"
           />
           <button class="p-2 bg-white text-green-500 rounded-full">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -59,7 +59,7 @@ const handleSearchChange = (e) => {
           <router-link to="/" class="text-white hover:text-gray-300">
             Início
           </router-link>
-          <template v-if="currentUser">  <!-- Usa currentUser diretamente -->
+          <template v-if="currentUser">  
             <router-link to="/profile" class="text-white hover:text-gray-300">
               Perfil
             </router-link>

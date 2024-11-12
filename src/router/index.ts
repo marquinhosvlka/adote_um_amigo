@@ -47,7 +47,7 @@ const router = createRouter({
   routes
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _, next) => { // Removido o parâmetro 'from'
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthenticated = auth.currentUser;
 

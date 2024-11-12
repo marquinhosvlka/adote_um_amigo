@@ -5,7 +5,19 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 import PetCard from '../components/PetCard.vue'
 import PetFilter from '../components/PetFilter.vue'
 
-const pets = ref([])
+const pets = ref<{ 
+  id: string; 
+  name: string; 
+  species: string; 
+  breed: string; 
+  age: number; 
+  size: string; 
+  city: string; 
+  state: string; 
+  imageUrl: string; 
+  status: string;
+}[]>([])
+
 const loading = ref(true)
 const filters = ref({
   species: '',
@@ -17,10 +29,30 @@ const fetchPets = async () => {
   loading.value = true
   try {
     let q = query(collection(db, 'pets'), where('status', '==', 'available'))
+
+    // Aplica filtros, se houver
+    if (filters.value.species) {
+      q = query(q, where('species', '==', filters.value.species))
+    }
+    if (filters.value.size) {
+      q = query(q, where('size', '==', filters.value.size))
+    }
+    if (filters.value.city) {
+      q = query(q, where('city', '==', filters.value.city))
+    }
+
     const querySnapshot = await getDocs(q)
     pets.value = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      name: doc.data().name || '',
+      species: doc.data().species || '',
+      breed: doc.data().breed || '',
+      age: doc.data().age || 0,
+      size: doc.data().size || '',
+      city: doc.data().city || '',
+      state: doc.data().state || '',
+      imageUrl: doc.data().imageUrl || '',
+      status: doc.data().status || 'available',
     }))
   } catch (error) {
     console.error('Erro ao buscar pets:', error)
@@ -28,7 +60,7 @@ const fetchPets = async () => {
   loading.value = false
 }
 
-const handleFilterChange = (newFilters) => {
+const handleFilterChange = (newFilters: { species: string; size: string; city: string }) => {
   filters.value = newFilters
   fetchPets()
 }

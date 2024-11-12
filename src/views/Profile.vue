@@ -6,8 +6,9 @@ import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage
 import { useAuthStore } from '../stores/auth'
 import PetCard from '../components/PetCard.vue'
 
+// Estado e variáveis
 const authStore = useAuthStore()
-const myPets = ref([])
+const myPets = ref<any[]>([]) // Adicionado tipo 'any' para pets
 const loading = ref(true)
 
 // Campos do perfil
@@ -19,6 +20,7 @@ const userAddress = ref(authStore.userData?.address || '')
 const userPhotoUrl = ref(authStore.userData?.photoUrl || '')
 const newPhotoFile = ref<File | null>(null)
 
+// Função para buscar os pets do usuário
 const fetchMyPets = async () => {
   if (!authStore.user) return
   
@@ -46,7 +48,7 @@ const saveProfile = async () => {
   try {
     let photoUrl = userPhotoUrl.value
     
-    // Se houver uma nova foto, faça o upload para o Firebase Storage
+    // Se houver uma nova foto, faz o upload para o Firebase Storage
     if (newPhotoFile.value) {
       const storagePath = `profilePhotos/${authStore.user.uid}`
       const photoRef = storageRef(storage, storagePath)
@@ -103,10 +105,6 @@ onMounted(fetchMyPets)
           <label class="block">
             <span class="font-medium">Endereço:</span>
             <input v-model="userAddress" class="input" type="text" />
-          </label>
-          <label class="block">
-            <span class="font-medium">Foto de Perfil:</span>
-            <input type="file" @change="e => newPhotoFile.value = e.target.files[0]" />
           </label>
           <button @click="saveProfile" class="btn-primary mt-4">Salvar</button>
           <button @click="editingProfile = false" class="btn-secondary mt-2">Cancelar</button>

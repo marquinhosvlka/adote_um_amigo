@@ -3,8 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { usePetsStore } from '../stores/pets'
-import Navbar from './components/Navbar.vue'
-import Footer from './components/Footer.vue'
+
 
 const router = useRouter()
 const authStore = useAuthStore()

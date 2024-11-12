@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { defineProps } from 'vue'
 
-const props = defineProps<{
+// Usando diretamente o `defineProps` sem armazenar em uma variável
+defineProps<{
   pet: {
     id: string
     name: string
