@@ -36,7 +36,8 @@ const toggleMenu = () => {
       <div class="flex justify-between items-center h-16">
         <!-- Logo -->
         <router-link to="/" class="text-white font-bold text-xl">
-          <img src="../assets/logo.png" alt="Adote um Amigo" class="h-10 w-auto" />
+          
+          <img src="../assets/logo.png" alt="Adote um Amigo" class="h-10 w-10 rounded-full" />
         </router-link>
 
         <!-- Menu de navegação -->
