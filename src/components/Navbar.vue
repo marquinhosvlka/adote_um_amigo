@@ -5,15 +5,15 @@ import { auth } from '../firebase/config'
 import { signOut, onAuthStateChanged, User } from 'firebase/auth'
 
 const router = useRouter()
-const searchQuery = ref('') // Futura implementação da busca
-const currentUser = ref<User | null>(null) // Inicializa como null para garantir que o estado reativo funcione
+const currentUser = ref<User | null>(null)
+const isMenuOpen = ref(false) // Controle do estado do menu no mobile
 
 // Observa mudanças de estado de autenticação
 onAuthStateChanged(auth, (user) => {
   currentUser.value = user
 })
 
-// Função de logout
+// Função para realizar logout
 const handleLogout = async () => {
   try {
     await signOut(auth)
@@ -23,43 +23,28 @@ const handleLogout = async () => {
   }
 }
 
-// Função para lidar com a mudança de pesquisa
-const handleSearchChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  searchQuery.value = target.value
+// Alterna o estado do menu (aberto ou fechado) no mobile
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
 }
 </script>
 
 <template>
-  <nav class="bg-green-500 shadow-lg">
+  <!-- Navbar para Desktop -->
+  <nav class="hidden md:flex bg-green-500 shadow-lg">
     <div class="container mx-auto px-4">
       <div class="flex justify-between items-center h-16">
+        <!-- Logo -->
         <router-link to="/" class="text-white font-bold text-xl">
-          Adote um Amigo
+          <img src="../assets/logo.png" alt="Adote um Amigo" class="h-10 w-auto" />
         </router-link>
 
-        <!-- Barra de Pesquisa -->
-        <div class="flex items-center space-x-2 ml-4">
-          <input
-            type="text"
-            v-model="searchQuery"
-            @input="handleSearchChange"
-            placeholder="Buscar pets..."
-            class="p-2 border rounded-full"
-          />
-          <button class="p-2 bg-white text-green-500 rounded-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M13.295 12.705a8 8 0 1 0-1.41 1.41l3.663 3.663a1 1 0 1 0 1.414-1.414l-3.667-3.663zM15 8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" clip-rule="evenodd"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Navegação de Links -->
-        <div class="hidden md:flex space-x-4">
+        <!-- Menu de navegação -->
+        <div class="flex space-x-6">
           <router-link to="/" class="text-white hover:text-gray-300">
             Início
           </router-link>
-          <template v-if="currentUser">  
+          <template v-if="currentUser">
             <router-link to="/profile" class="text-white hover:text-gray-300">
               Perfil
             </router-link>
@@ -82,51 +67,101 @@ const handleSearchChange = (e: Event) => {
       </div>
     </div>
   </nav>
+
+  <!-- Navbar para Mobile -->
+  <nav class="md:hidden bg-green-500 shadow-lg">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center h-16">
+        <!-- Logo -->
+        <router-link to="/" class="text-white font-bold text-xl">
+          <img src="../assets/logo.png" alt="Adote um Amigo" class="h-10 w-auto" />
+        </router-link>
+
+        <!-- Menu Mobile (Hamburguer) -->
+        <button @click="toggleMenu" class="text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Menu de navegação (Mobile) - Aparece quando o menu hamburguer é clicado -->
+    <div v-show="isMenuOpen" class="flex flex-col space-y-6 py-4 absolute top-16 left-0 right-0 bg-green-500 z-10">
+      <router-link to="/" class="text-white hover:text-gray-300 px-4 py-2">
+        Início
+      </router-link>
+      <template v-if="currentUser">
+        <router-link to="/profile" class="text-white hover:text-gray-300 px-4 py-2">
+          Perfil
+        </router-link>
+        <router-link to="/create-pet" class="text-white hover:text-gray-300 px-4 py-2">
+          Anunciar Pet
+        </router-link>
+        <button @click="handleLogout" class="text-white hover:text-gray-300 px-4 py-2">
+          Sair
+        </button>
+      </template>
+      <template v-else>
+        <router-link to="/login" class="text-white hover:text-gray-300 px-4 py-2">
+          Entrar
+        </router-link>
+        <router-link to="/register" class="text-white hover:text-gray-300 px-4 py-2">
+          Cadastrar
+        </router-link>
+      </template>
+    </div>
+  </nav>
 </template>
 
 <style scoped>
-/* Estilo para a barra superior (navbar) verde */
+/* Navbar Desktop */
+.md\:flex {
+  display: flex;
+}
+
+/* Navbar Mobile */
+.md\:hidden {
+  display: none;
+}
+
 .bg-green-500 {
-  background-color: #4CAF50; /* Cor verde para a barra */
+  background-color: #4CAF50; /* Cor de fundo */
 }
 
-/* Ajustes de estilo para a barra de pesquisa */
-input[type="text"] {
-  font-size: 16px;
-  border-color: #ddd;
-  transition: border-color 0.2s ease;
+.text-white {
+  color: white;
 }
 
-input[type="text"]:focus {
-  border-color: #5c6ac4;
-  outline: none;
+.hover\:text-gray-300:hover {
+  color: #D1D5DB; /* Cor do texto ao passar o mouse */
 }
 
-/* Ajustes para o botão da lupa */
-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.absolute {
+  position: absolute;
 }
 
-button svg {
-  fill: #4CAF50;
+.top-16 {
+  top: 4rem; /* Espaço abaixo da navbar */
 }
 
-/* Ajustes para o layout da navbar */
-.flex {
-  display: flex;
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
 }
 
-.items-center {
-  align-items: center;
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
-.space-x-2 {
-  margin-left: 0.5rem;
-}
+/* Responsividade: Exibe a navegação normalmente em telas maiores e oculta o menu hamburguer em telas grandes */
+@media (min-width: 768px) {
+  .md\:flex {
+    display: flex;
+  }
 
-.ml-4 {
-  margin-left: 1rem;
+  .md\:hidden {
+    display: none;
+  }
 }
 </style>
