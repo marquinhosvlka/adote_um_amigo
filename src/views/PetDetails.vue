@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase/config'
-import { doc, getDoc, collection, addDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, addDoc, updateDoc, getDocs } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -13,7 +13,11 @@ const pet = ref<any>(null)
 const owner = ref<any>(null)
 const loading = ref(true)
 const showAdoptionForm = ref(false)
+const adoptionRequests = ref<any[]>([])
 const adoptionReason = ref('')
+const adopterName = ref('')
+const adopterEmail = ref('')
+const adopterPhone = ref('')
 const error = ref('')
 
 // Carrega os detalhes do pet e do dono
@@ -24,6 +28,13 @@ const fetchPetDetails = async () => {
       pet.value = { id: petDoc.id, ...petDoc.data() }
       const ownerDoc = await getDoc(doc(db, 'users', pet.value.userId))
       owner.value = ownerDoc.data()
+
+      // Carregar pedidos de adoção
+      const requestsSnapshot = await getDocs(collection(db, `pets/${pet.value.id}/adoptionRequests`))
+      adoptionRequests.value = requestsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }))
     } else {
       router.push('/')
     }
@@ -42,19 +53,21 @@ const handleAdoptionRequest = async () => {
   }
 
   try {
-    await addDoc(collection(db, 'adoptionRequests'), {
-      petId: pet.value.id,
-      petName: pet.value.name,
-      userId: authStore.user.uid,
-      userName: authStore.userData.name,
-      ownerId: pet.value.userId,
+    await addDoc(collection(db, `pets/${pet.value.id}/adoptionRequests`), {
+      adopterName: adopterName.value,
+      adopterEmail: adopterEmail.value,
+      adopterPhone: adopterPhone.value,
       reason: adoptionReason.value,
       status: 'pending',
       createdAt: new Date()
     })
 
     showAdoptionForm.value = false
+    adopterName.value = ''
+    adopterEmail.value = ''
+    adopterPhone.value = ''
     adoptionReason.value = ''
+    fetchPetDetails() // Atualiza a lista de pedidos
   } catch (e) {
     error.value = 'Erro ao enviar solicitação. Tente novamente.'
   }
@@ -97,62 +110,74 @@ onMounted(fetchPetDetails)
           <p class="text-gray-700">{{ pet.description }}</p>
         </div>
 
-        <div class="card">
-          <h2 class="text-xl font-semibold mb-2">Informações</h2>
-          <ul class="space-y-2">
-            <li><span class="font-medium">Espécie:</span> {{ pet.species }}</li>
-            <li><span class="font-medium">Porte:</span> {{ pet.size }}</li>
-          </ul>
+        <!-- Informações do dono -->
+        <div v-if="owner" class="card">
+          <h2 class="text-xl font-semibold mb-2">Informações do Dono</h2>
+          <p><strong>Nome:</strong> {{ owner.name }}</p>
+          <p><strong>Telefone:</strong> {{ owner.phone }}</p>
         </div>
 
-        <div class="card">
-          <h2 class="text-xl font-semibold mb-2">Contato</h2>
-          <ul class="space-y-2" v-if="owner">
-            <li><span class="font-medium">Nome:</span> {{ owner.name }}</li>
-            <li><span class="font-medium">Telefone:</span> {{ owner.phone }}</li>
-          </ul>
-        </div>
-
-        <!-- Botão para alterar o status do pet (disponível apenas para o dono) -->
+        <!-- Botão para alterar o status do pet -->
         <div v-if="authStore.user?.uid === pet.userId">
           <button @click="toggleAvailability" class="btn-primary w-full">
             Alterar Status ({{ pet.status === 'available' ? 'Disponível' : 'Indisponível' }})
           </button>
+
+          <!-- Lista de pedidos de adoção -->
+          <div v-if="adoptionRequests.length" class="card">
+            <h2 class="text-xl font-semibold mb-2">Pedidos de Adoção</h2>
+            <ul class="space-y-4">
+              <li v-for="request in adoptionRequests" :key="request.id" class="border rounded-md p-4">
+                <p><strong>Nome:</strong> {{ request.adopterName }}</p>
+                <p><strong>Email:</strong> {{ request.adopterEmail }}</p>
+                <p><strong>Telefone:</strong> {{ request.adopterPhone }}</p>
+                <p><strong>Motivo:</strong> {{ request.reason }}</p>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <!-- Botão de WhatsApp e opções de adoção para usuários que não são o dono -->
+        <!-- Opções de adoção para quem não é o dono -->
         <div v-else>
-          <!-- Botão de WhatsApp para contato direto -->
+          <!-- Botão de WhatsApp -->
           <a v-if="owner && owner.phone" :href="`https://wa.me/+55${owner.phone.replace(/\D/g, '')}`" target="_blank"
             class="btn-primary w-full">
             Quero Adotar via WhatsApp
           </a>
 
-          <!-- Formulário de adoção para envio de mensagem -->
-          <div v-if="showAdoptionForm">
-            <form @submit.prevent="handleAdoptionRequest" class="card">
-              <h3 class="text-lg font-semibold mb-4">Solicitar Adoção</h3>
+          <!-- Formulário de adoção -->
+          <div v-if="showAdoptionForm" class="card">
+            <h3 class="text-lg font-semibold mb-4">Solicitar Adoção</h3>
+            <form @submit.prevent="handleAdoptionRequest">
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700">
-                    Por que você quer adotar {{ pet.name }}?
-                  </label>
-                  <textarea v-model="adoptionReason" required rows="4"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"></textarea>
+                  <label class="block text-sm font-medium text-gray-700">Nome</label>
+                  <input v-model="adopterName" required type="text" class="input-primary" />
                 </div>
-                <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Email</label>
+                  <input v-model="adopterEmail" required type="email" class="input-primary" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Telefone</label>
+                  <input v-model="adopterPhone" required type="tel" class="input-primary" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Por que você quer adotar {{ pet.name }}?</label>
+                  <textarea v-model="adoptionReason" required rows="4" class="input-primary"></textarea>
+                </div>
+                <p v-if="error" class="text-red-500">{{ error }}</p>
                 <div class="flex justify-end space-x-4">
-                  <button type="button" @click="showAdoptionForm = false"
-                    class="btn-primary bg-gray-500 hover:bg-gray-600">
+                  <button type="button" @click="showAdoptionForm = false" class="btn-primary bg-gray-500">
                     Cancelar
                   </button>
-                  <button type="submit" class="btn-primary">Enviar Solicitação</button>
+                  <button type="submit" class="btn-primary">Enviar</button>
                 </div>
               </div>
             </form>
           </div>
 
-          <!-- Botão para abrir o formulário de adoção -->
+          <!-- Botão para abrir o formulário -->
           <button v-else @click="showAdoptionForm = true" class="btn-primary w-full">
             Quero Adotar
           </button>
@@ -161,11 +186,24 @@ onMounted(fetchPetDetails)
     </div>
   </div>
 </template>
+
 <style>
 .btn-primary {
   background-color: #009951;
-  border: black;
-  margin-top: 10px;
-
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background-color: #007c40;
+}
+.input-primary {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
 </style>
