@@ -9,6 +9,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 const petsStore = usePetsStore()
 
+interface Estado {
+  sigla: string;
+  nome: string;
+}
+interface Cidade {
+  nome: string;
+}
+
 const petData = ref({
   name: '',
   species: '',
@@ -23,8 +31,9 @@ const petData = ref({
 const imageFile = ref<File | null>(null)
 const previewUrl = ref('')
 const error = ref('')
-const estados = ref([]) // Para armazenar os estados
-const cidades = ref([]) // Para armazenar as cidades
+const estados = ref<Estado[]>([]); 
+const cidades = ref<Cidade[]>([]); 
+
 
 const handleImageChange = (event: Event) => {
   const target = event.target as HTMLInputElement

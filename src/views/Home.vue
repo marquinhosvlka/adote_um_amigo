@@ -30,7 +30,7 @@ const fetchPets = async () => {
   try {
     let q = query(collection(db, 'pets'), where('status', '==', 'available'))
 
-    // Aplica filtros, se houver
+   
     if (filters.value.species) {
       q = query(q, where('species', '==', filters.value.species))
     }
