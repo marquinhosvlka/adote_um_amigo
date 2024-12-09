@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { usePetsStore } from '../stores/pets'
-
+import axios from 'axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -23,12 +23,32 @@ const petData = ref({
 const imageFile = ref<File | null>(null)
 const previewUrl = ref('')
 const error = ref('')
+const estados = ref([]) // Para armazenar os estados
+const cidades = ref([]) // Para armazenar as cidades
 
 const handleImageChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
     imageFile.value = target.files[0]
     previewUrl.value = URL.createObjectURL(target.files[0])
+  }
+}
+
+const fetchEstados = async () => {
+  try {
+    const response = await axios.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+    estados.value = response.data
+  } catch (error) {
+    console.error('Erro ao buscar estados:', error)
+  }
+}
+
+const fetchCidades = async (estadoSigla: string) => {
+  try {
+    const response = await axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estadoSigla}/municipios`)
+    cidades.value = response.data
+  } catch (error) {
+    console.error('Erro ao buscar cidades:', error)
   }
 }
 
@@ -51,6 +71,9 @@ const handleSubmit = async () => {
     error.value = 'Erro ao criar anúncio. Tente novamente.'
   }
 }
+onMounted(() => {
+  fetchEstados()
+})
 </script>
 
 <template>
@@ -119,23 +142,32 @@ const handleSubmit = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Cidade</label>
-          <input
-            v-model="petData.city"
-            type="text"
+          <label class="block text-sm font-medium text-gray-700">Estado</label>
+          <select
+            v-model="petData.state"
+            @change="fetchCidades(petData.state)"
             required
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-          />
+          >
+            <option value="">Selecione</option>
+            <option v-for="estado in estados" :key="estado.sigla" :value="estado.sigla">
+              {{ estado.nome }}
+            </option>
+          </select>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Estado</label>
-          <input
-            v-model="petData.state"
-            type="text"
+          <label class="block text-sm font-medium text-gray-700">Cidade</label>
+          <select
+            v-model="petData.city"
             required
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-          />
+          >
+            <option value="">Selecione</option>
+            <option v-for="cidade in cidades" :key="cidade.nome" :value="cidade.nome">
+              {{ cidade.nome }}
+            </option>
+          </select>
         </div>
 
         <div class="md:col-span-2">

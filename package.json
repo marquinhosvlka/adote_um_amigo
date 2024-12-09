@@ -11,6 +11,7 @@
   "dependencies": {
     "@vueuse/core": "^10.7.2",
     "@vueuse/firebase": "^10.7.2",
+    "axios": "^1.7.9",
     "cors": "^2.8.5",
     "firebase": "^10.14.1",
     "lucide-vue-next": "^0.456.0",
