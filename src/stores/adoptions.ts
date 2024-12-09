@@ -37,29 +37,6 @@ export const useAdoptionsStore = defineStore('adoptions', () => {
     }
   };
 
-  const updateAdoptionStatus = async (id: string, status: 'approved' | 'rejected') => {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const requestRef = doc(db, 'adoptionRequests', id);
-      await updateDoc(requestRef, { status });
-
-      if (status === 'approved') {
-        const request = adoptionRequests.value.find(r => r.id === id);
-        if (request) {
-          // Update pet status
-          const petRef = doc(db, 'pets', request.petId);
-          await updateDoc(petRef, { status: 'adopted' });
-        }
-      }
-    } catch (e: any) {
-      error.value = e.message;
-      throw e;
-    } finally {
-      loading.value = false;
-    }
-  };
 
   const fetchUserRequests = async (userId: string) => {
     loading.value = true;
@@ -116,7 +93,6 @@ export const useAdoptionsStore = defineStore('adoptions', () => {
     loading,
     error,
     createAdoptionRequest,
-    updateAdoptionStatus,
     fetchUserRequests,
     fetchPetRequests
   };
