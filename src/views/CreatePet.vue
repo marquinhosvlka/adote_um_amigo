@@ -126,12 +126,12 @@ onMounted(() => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Idade (anos)</label>
+          <label class="block text-sm font-medium text-gray-700">Idade (anos/meses)</label>
           <input
             v-model="petData.age"
-            type="number"
+            type="text"
             required
-            min="0"
+            
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
           />
         </div>

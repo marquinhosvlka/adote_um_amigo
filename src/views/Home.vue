@@ -5,16 +5,16 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 import PetCard from '../components/PetCard.vue'
 import PetFilter from '../components/PetFilter.vue'
 
-const pets = ref<{ 
-  id: string; 
-  name: string; 
-  species: string; 
-  breed: string; 
-  age: number; 
-  size: string; 
-  city: string; 
-  state: string; 
-  imageUrl: string; 
+const pets = ref<{
+  id: string;
+  name: string;
+  species: string;
+  breed: string;
+  age: number;
+  size: string;
+  city: string;
+  state: string;
+  imageUrl: string;
   status: string;
 }[]>([])
 
@@ -30,7 +30,7 @@ const fetchPets = async () => {
   try {
     let q = query(collection(db, 'pets'), where('status', '==', 'available'))
 
-   
+
     if (filters.value.species) {
       q = query(q, where('species', '==', filters.value.species))
     }
@@ -38,7 +38,12 @@ const fetchPets = async () => {
       q = query(q, where('size', '==', filters.value.size))
     }
     if (filters.value.city) {
-      q = query(q, where('city', '==', filters.value.city))
+      q = query(
+        collection(db, 'pets'),
+        where('city', '>=', filters.value.city),
+        where('city', '<=', filters.value.city + '\uf8ff')
+      );
+
     }
 
     const querySnapshot = await getDocs(q)
@@ -78,7 +83,7 @@ onMounted(fetchPets)
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-600">Carregando pets...</p>
     </div>
-    
+
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <PetCard v-for="pet in pets" :key="pet.id" :pet="pet" />
     </div>
