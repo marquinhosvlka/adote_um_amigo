@@ -38,14 +38,14 @@ const fetchPets = async () => {
       q = query(q, where('size', '==', filters.value.size))
     }
     if (filters.value.city) {
-      const city = filters.value.city
-        .replace(/^\w/, (c) => c.toUpperCase()); // Primeira letra maiúscula
-      q = query(
-        collection(db, 'pets'),
-        where('city', '>=', city),
-        where('city', '<=', city + '\uf8ff')
-      );
-    }
+  const city = filters.value.city
+    .replace(/^\w/, (c) => c.toUpperCase()); // Primeira letra maiúscula
+  q = query(
+    collection(db, 'pets'),
+    where('city', '>=', city),
+    where('city', '<=', city + '\uf8ff')
+  );
+}
 
 
     const querySnapshot = await getDocs(q)

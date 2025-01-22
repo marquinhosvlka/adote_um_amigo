@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase/config'
-import { doc, getDoc, collection, addDoc, updateDoc, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -73,14 +73,29 @@ const handleAdoptionRequest = async () => {
   }
 }
 
-// Altera o status de disponibilidade do pet
-const toggleAvailability = async () => {
+// Aceitar um pedido de adoção
+const acceptAdoptionRequest = async (requestId: string) => {
   try {
-    const newStatus = pet.value.status === 'available' ? 'unavailable' : 'available'
-    await updateDoc(doc(db, 'pets', pet.value.id), { status: newStatus })
-    pet.value.status = newStatus
+    // Atualiza o status do pet para "adotado"
+    await updateDoc(doc(db, 'pets', pet.value.id), { status: 'adotado' })
+    pet.value.status = 'adotado'
+
+    // Atualiza o pedido de adoção como "aceito"
+    await updateDoc(doc(db, `pets/${pet.value.id}/adoptionRequests/${requestId}`), { status: 'accepted' })
+
+    fetchPetDetails()
   } catch (e) {
-    error.value = 'Erro ao alterar o status. Tente novamente.'
+    error.value = 'Erro ao aceitar o pedido. Tente novamente.'
+  }
+}
+
+// Recusar um pedido de adoção
+const declineAdoptionRequest = async (requestId: string) => {
+  try {
+    await deleteDoc(doc(db, `pets/${pet.value.id}/adoptionRequests/${requestId}`))
+    fetchPetDetails()
+  } catch (e) {
+    error.value = 'Erro ao recusar o pedido. Tente novamente.'
   }
 }
 
@@ -95,7 +110,7 @@ onMounted(fetchPetDetails)
   <div v-else-if="pet" class="max-w-4xl mx-auto">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div>
-        <img :src="pet.imageUrl" :alt="pet.name" class="w-full h-96 object-cover rounded-lg shadow-lg" />
+        <img :src="pet.imageUrl" :alt="pet.name" class="pet-image" />
       </div>
 
       <div class="space-y-6">
@@ -103,6 +118,9 @@ onMounted(fetchPetDetails)
           <h1 class="text-3xl font-bold text-primary">{{ pet.name }}</h1>
           <p class="text-gray-600">{{ pet.breed }} • {{ pet.age }} anos</p>
           <p class="text-gray-600">{{ pet.city }}, {{ pet.state }}</p>
+          <p v-if="pet.status === 'adotado'" class="text-green-500 font-bold">
+            Status: Adotado
+          </p>
         </div>
 
         <div class="card">
@@ -110,42 +128,40 @@ onMounted(fetchPetDetails)
           <p class="text-gray-700">{{ pet.description }}</p>
         </div>
 
-        <!-- Informações do dono -->
         <div v-if="owner" class="card">
           <h2 class="text-xl font-semibold mb-2">Informações do Dono</h2>
           <p><strong>Nome:</strong> {{ owner.name }}</p>
           <p><strong>Telefone:</strong> {{ owner.phone }}</p>
         </div>
 
-        <!-- Botão para alterar o status do pet -->
-        <div v-if="authStore.user?.uid === pet.userId">
-          <button @click="toggleAvailability" class="btn-primary w-full">
-            Alterar Status ({{ pet.status === 'available' ? 'Disponível' : 'Indisponível' }})
-          </button>
-
-          <!-- Lista de pedidos de adoção -->
-          <div v-if="adoptionRequests.length" class="card">
-            <h2 class="text-xl font-semibold mb-2">Pedidos de Adoção</h2>
-            <ul class="space-y-4">
-              <li v-for="request in adoptionRequests" :key="request.id" class="border rounded-md p-4">
-                <p><strong>Nome:</strong> {{ request.adopterName }}</p>
-                <p><strong>Email:</strong> {{ request.adopterEmail }}</p>
-                <p><strong>Telefone:</strong> {{ request.adopterPhone }}</p>
-                <p><strong>Motivo:</strong> {{ request.reason }}</p>
-              </li>
-            </ul>
-          </div>
+        <!-- Lista de pedidos de adoção -->
+        <div v-if="authStore.user?.uid === pet.userId && adoptionRequests.length && pet.status !== 'adotado'" class="card">
+          <h2 class="text-xl font-semibold mb-2">Pedidos de Adoção</h2>
+          <ul class="space-y-4">
+            <li v-for="request in adoptionRequests" :key="request.id" class="border rounded-md p-4">
+              <p><strong>Nome:</strong> {{ request.adopterName }}</p>
+              <p><strong>Email:</strong> {{ request.adopterEmail }}</p>
+              <p><strong>Telefone:</strong> {{ request.adopterPhone }}</p>
+              <p><strong>Motivo:</strong> {{ request.reason }}</p>
+              <div class="flex space-x-4 mt-2">
+                <button @click="acceptAdoptionRequest(request.id)" class="btn-primary">
+                  Aceitar
+                </button>
+                <button @click="declineAdoptionRequest(request.id)" class="btn-primary bg-red-500">
+                  Recusar
+                </button>
+              </div>
+            </li>
+          </ul>
         </div>
 
-        <!-- Opções de adoção para quem não é o dono -->
-        <div v-else>
-          <!-- Botão de WhatsApp -->
+        <!-- Botão e Formulário de Adoção -->
+        <div v-else-if="authStore.user?.uid !== pet.userId && pet.status !== 'adotado'">
           <a v-if="owner && owner.phone" :href="`https://wa.me/+55${owner.phone.replace(/\D/g, '')}`" target="_blank"
             class="btn-primary w-full">
             Quero Adotar via WhatsApp
           </a>
 
-          <!-- Formulário de adoção -->
           <div v-if="showAdoptionForm" class="card">
             <h3 class="text-lg font-semibold mb-4">Solicitar Adoção</h3>
             <form @submit.prevent="handleAdoptionRequest">
@@ -177,7 +193,6 @@ onMounted(fetchPetDetails)
             </form>
           </div>
 
-          <!-- Botão para abrir o formulário -->
           <button v-else @click="showAdoptionForm = true" class="btn-primary w-full">
             Quero Adotar
           </button>
@@ -188,6 +203,13 @@ onMounted(fetchPetDetails)
 </template>
 
 <style>
+.pet-image {
+  width: 100%;
+  height: 24rem;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
 .btn-primary {
   background-color: #009951;
   color: white;
