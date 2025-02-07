@@ -19,6 +19,7 @@ const adopterName = ref('')
 const adopterEmail = ref('')
 const adopterPhone = ref('')
 const error = ref('')
+const successMessage = ref('')
 
 // Carrega os detalhes do pet e do dono
 const fetchPetDetails = async () => {
@@ -59,9 +60,12 @@ const handleAdoptionRequest = async () => {
       adopterPhone: adopterPhone.value,
       reason: adoptionReason.value,
       status: 'pending',
-      createdAt: new Date()
+      createdAt: new Date(),
+      adopterId: authStore.user.uid // Vincula o ID do adotante
     })
 
+    successMessage.value = 'Solicitação enviada com sucesso!'
+    console.log(successMessage.value) // Log para verificar se a mensagem é atualizada
     showAdoptionForm.value = false
     adopterName.value = ''
     adopterEmail.value = ''
@@ -69,6 +73,7 @@ const handleAdoptionRequest = async () => {
     adoptionReason.value = ''
     fetchPetDetails() // Atualiza a lista de pedidos
   } catch (e) {
+    console.error('Erro ao enviar solicitação:', e) // Log do erro
     error.value = 'Erro ao enviar solicitação. Tente novamente.'
   }
 }
@@ -76,12 +81,17 @@ const handleAdoptionRequest = async () => {
 // Aceitar um pedido de adoção
 const acceptAdoptionRequest = async (requestId: string) => {
   try {
-    // Atualiza o status do pet para "adotado"
-    await updateDoc(doc(db, 'pets', pet.value.id), { status: 'adotado' })
+    // Atualiza o status do pet para "adotado" e vincula ao usuário
+    await updateDoc(doc(db, 'pets', pet.value.id), { 
+      status: 'adotado',
+      adoptedBy: authStore.user?.uid // Vincula o ID do usuário que adotou
+    })
     pet.value.status = 'adotado'
 
     // Atualiza o pedido de adoção como "aceito"
-    await updateDoc(doc(db, `pets/${pet.value.id}/adoptionRequests/${requestId}`), { status: 'accepted' })
+    await updateDoc(doc(db, `pets/${pet.value.id}/adoptionRequests/${requestId}`), { 
+      status: 'accepted'
+    })
 
     fetchPetDetails()
   } catch (e) {
@@ -155,10 +165,9 @@ onMounted(fetchPetDetails)
           </ul>
         </div>
 
-        <!-- Botão e Formulário de Adoção -->
-        <div v-else-if="authStore.user?.uid !== pet.userId && pet.status !== 'adotado'">
-          <a v-if="owner && owner.phone" :href="`https://wa.me/+55${owner.phone.replace(/\D/g, '')}`" target="_blank"
-            class="btn-primary w-full">
+        <!-- Formulário de Adoção -->
+        <div v-if="authStore.user?.uid !== pet.userId && pet.status !== 'adotado'">
+          <a v-if="owner && owner.phone" :href="'https://wa.me/+55' + owner.phone.replace(/\D/g, '')" target="_blank" class="btn-primary w-full">
             Quero Adotar via WhatsApp
           </a>
 
@@ -183,6 +192,7 @@ onMounted(fetchPetDetails)
                   <textarea v-model="adoptionReason" required rows="4" class="input-primary"></textarea>
                 </div>
                 <p v-if="error" class="text-red-500">{{ error }}</p>
+                <p v-if="successMessage" class="text-green-500">{{ successMessage }}</p>
                 <div class="flex justify-end space-x-4">
                   <button type="button" @click="showAdoptionForm = false" class="btn-primary bg-gray-500">
                     Cancelar
