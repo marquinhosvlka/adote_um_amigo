@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch } from 'vue';
 
-const emit = defineEmits(['filter'])
+const emit = defineEmits(['filter']);
 
 const filters = ref({
   species: '',
   size: '',
-  city: ''
-})
+  city: '',
+});
 
-const species = ['Cachorro', 'Gato', 'Outros']
-const sizes = ['Pequeno', 'Médio', 'Grande']
+const species = ['Cachorro', 'Gato', 'Outros'];
+const sizes = ['Pequeno', 'Médio', 'Grande'];
 
-watch(filters, (newFilters) => {
-  emit('filter', newFilters)
-}, { deep: true })
+watch(
+  filters,
+  (newFilters) => {
+    emit('filter', newFilters);
+  },
+  { deep: true }
+);
 </script>
 
 <template>

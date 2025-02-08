@@ -1,31 +1,68 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { 
+import { db } from '../firebase/config';
+import {
   collection,
   addDoc,
-  updateDoc,
-  doc,
   query,
   where,
-  getDocs
+  getDocs,
+  updateDoc,
+  doc,
+  getDoc,
+  writeBatch,
 } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import type { AdoptionRequest } from '../types';
 
 export const useAdoptionsStore = defineStore('adoptions', () => {
-  const adoptionRequests = ref<AdoptionRequest[]>([]);
+  const adoptionRequests = ref<any[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  const createAdoptionRequest = async (data: Omit<AdoptionRequest, 'id' | 'status' | 'createdAt'>) => {
+  const hasUserRequestedPet = async (userId: string, petId: string): Promise<boolean> => {
+    try {
+      const q = query(
+        collection(db, `pets/${petId}/adoptionRequests`),
+        where('adopterId', '==', userId)
+      );
+      const snapshot = await getDocs(q);
+      return !snapshot.empty;
+    } catch (e) {
+      console.error('Error checking adoption request:', e);
+      return false;
+    }
+  };
+
+  const createAdoptionRequest = async (
+    petId: string,
+    userId: string,
+    data: {
+      adopterName: string;
+      adopterEmail: string;
+      adopterPhone: string;
+      reason: string;
+    }
+  ) => {
     loading.value = true;
     error.value = null;
 
     try {
-      const docRef = await addDoc(collection(db, 'adoptionRequests'), {
+      // Check if user has already requested this pet
+      const hasRequested = await hasUserRequestedPet(userId, petId);
+      if (hasRequested) {
+        throw new Error('Você já solicitou a adoção deste pet');
+      }
+
+      // Check if pet is still available
+      const petDoc = await getDoc(doc(db, 'pets', petId));
+      if (!petDoc.exists() || petDoc.data()?.status !== 'available') {
+        throw new Error('Este pet não está mais disponível para adoção');
+      }
+
+      const docRef = await addDoc(collection(db, `pets/${petId}/adoptionRequests`), {
         ...data,
+        adopterId: userId,
         status: 'pending',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       return docRef.id;
@@ -37,22 +74,49 @@ export const useAdoptionsStore = defineStore('adoptions', () => {
     }
   };
 
-  const updateAdoptionStatus = async (id: string, status: 'approved' | 'rejected') => {
+  const updateAdoptionStatus = async (
+    petId: string,
+    requestId: string,
+    adopterId: string,
+    status: 'approved' | 'rejected'
+  ) => {
     loading.value = true;
     error.value = null;
 
     try {
-      const requestRef = doc(db, 'adoptionRequests', id);
-      await updateDoc(requestRef, { status });
+      const batch = writeBatch(db);
+
+      // Update adoption request status
+      const requestRef = doc(db, `pets/${petId}/adoptionRequests/${requestId}`);
+      batch.update(requestRef, { status });
 
       if (status === 'approved') {
-        const request = adoptionRequests.value.find(r => r.id === id);
-        if (request) {
-          // Update pet status
-          const petRef = doc(db, 'pets', request.petId);
-          await updateDoc(petRef, { status: 'adopted' });
-        }
+        // Update pet status and add adoptedBy field
+        const petRef = doc(db, 'pets', petId);
+        batch.update(petRef, {
+          status: 'adopted',
+          adoptedBy: adopterId,
+          adoptedAt: new Date()
+        });
+
+        // Get all pending requests for this pet
+        const pendingRequests = await getDocs(
+          query(
+            collection(db, `pets/${petId}/adoptionRequests`),
+            where('status', '==', 'pending')
+          )
+        );
+
+        // Reject all other pending requests
+        pendingRequests.docs.forEach(doc => {
+          if (doc.id !== requestId) {
+            const reqRef = doc.ref;
+            batch.update(reqRef, { status: 'rejected' });
+          }
+        });
       }
+
+      await batch.commit();
     } catch (e: any) {
       error.value = e.message;
       throw e;
@@ -61,48 +125,32 @@ export const useAdoptionsStore = defineStore('adoptions', () => {
     }
   };
 
-  const fetchUserRequests = async (userId: string) => {
+  const fetchUserAdoptionRequests = async (userId: string) => {
     loading.value = true;
     error.value = null;
 
     try {
-      const q = query(
-        collection(db, 'adoptionRequests'),
-        where('userId', '==', userId)
-      );
-      
-      const snapshot = await getDocs(q);
-      adoptionRequests.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as AdoptionRequest[];
+      const requests: any[] = [];
+      const petsRef = collection(db, 'pets');
+      const petsSnapshot = await getDocs(petsRef);
 
-      return adoptionRequests.value;
-    } catch (e: any) {
-      error.value = e.message;
-      throw e;
-    } finally {
-      loading.value = false;
-    }
-  };
+      for (const petDoc of petsSnapshot.docs) {
+        const requestsRef = collection(db, `pets/${petDoc.id}/adoptionRequests`);
+        const q = query(requestsRef, where('adopterId', '==', userId));
+        const requestsSnapshot = await getDocs(q);
 
-  const fetchPetRequests = async (petId: string) => {
-    loading.value = true;
-    error.value = null;
+        requestsSnapshot.docs.forEach(requestDoc => {
+          requests.push({
+            id: requestDoc.id,
+            petId: petDoc.id,
+            petData: petDoc.data(),
+            ...requestDoc.data()
+          });
+        });
+      }
 
-    try {
-      const q = query(
-        collection(db, 'adoptionRequests'),
-        where('petId', '==', petId)
-      );
-      
-      const snapshot = await getDocs(q);
-      adoptionRequests.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as AdoptionRequest[];
-
-      return adoptionRequests.value;
+      adoptionRequests.value = requests;
+      return requests;
     } catch (e: any) {
       error.value = e.message;
       throw e;
@@ -115,9 +163,9 @@ export const useAdoptionsStore = defineStore('adoptions', () => {
     adoptionRequests,
     loading,
     error,
+    hasUserRequestedPet,
     createAdoptionRequest,
     updateAdoptionStatus,
-    fetchUserRequests,
-    fetchPetRequests
+    fetchUserAdoptionRequests,
   };
 });

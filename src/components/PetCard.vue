@@ -1,41 +1,41 @@
 <script setup lang="ts">
-import { defineProps } from 'vue'
+import { defineProps } from 'vue';
 
-// Definindo as propriedades para o componente
 defineProps<{
   pet: {
-    id: string
-    name: string
-    species: string
-    breed: string
-    age: number
-    size: string
-    city: string
-    state: string
-    imageUrl: string 
-    status: string
-  }
-}>()
+    id: string;
+    name: string;
+    species: string;
+    breed: string;
+    age: number;
+    size: string;
+    city: string;
+    state: string;
+    imageUrl: string;
+    status: string;
+  };
+}>();
 </script>
 
 <template>
-  <div class="card hover:shadow-lg transition-shadow">
+  <div class="card h-full flex flex-col">
     <div class="image-container">
-      <img 
-        :src="pet.imageUrl" 
-        :alt="pet.name"
-        class="pet-image"
-      />
+      <img :src="pet.imageUrl" :alt="pet.name" class="pet-image" />
     </div>
-    <div class="p-4">
-      <h3 class="text-xl font-bold text-primary">{{ pet.name }}</h3>
-      <div class="mt-2 space-y-1">
-        <p class="text-gray-600">{{ pet.breed }} • {{ pet.age }} anos</p>
-        <p class="text-gray-600">{{ pet.city }}, {{ pet.state }}</p>
+    <div class="p-4 flex-1 flex flex-col">
+      <div class="flex-1">
+        <h3 class="text-xl font-bold text-primary mb-2">{{ pet.name }}</h3>
+        <div class="space-y-1">
+          <p class="text-gray-600">{{ pet.breed }} • {{ pet.age }} anos</p>
+          <p class="text-gray-600">{{ pet.city }}, {{ pet.state }}</p>
+          <p v-if="pet.status === 'adopted'" class="text-green-500 font-semibold mt-2">
+            Adotado
+          </p>
+        </div>
       </div>
-      <router-link 
+      <router-link
         :to="'/pet/' + pet.id"
-        class="btn-primary block text-center mt-4"
+        class="btn-primary block text-center mt-4 w-full"
       >
         Ver detalhes
       </router-link>
@@ -45,25 +45,19 @@ defineProps<{
 
 <style scoped>
 .card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: #fff;
+  @apply bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 transition-shadow hover:shadow-lg;
+  height: 100%;
 }
 
 .image-container {
-  width: 100%; /* Garante que o container da imagem ocupe toda a largura */
-  height: 200px; /* Define uma altura fixa para o container */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #f5f5f5; /* Fundo cinza claro para contraste */
-  overflow: hidden;
+  @apply w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden;
 }
 
 .pet-image {
-  max-width: 100%; /* Impede que a largura da imagem ultrapasse o container */
-  max-height: 100%; /* Impede que a altura ultrapasse o container */
-  object-fit: contain; /* Redimensiona proporcionalmente a imagem */
+  @apply w-full h-full object-cover;
+}
+
+.btn-primary {
+  @apply bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors inline-block;
 }
 </style>

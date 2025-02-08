@@ -1,37 +1,44 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { auth } from '../firebase/config'
-import { sendPasswordResetEmail } from 'firebase/auth'
+import { ref } from 'vue';
+import { auth } from '../firebase/config';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
-const email = ref('')
-const error = ref('')
-const success = ref(false)
-const loading = ref(false)
+const email = ref('');
+const error = ref('');
+const success = ref(false);
+const loading = ref(false);
 
 const handleRecoverPassword = async () => {
-  if (loading.value) return
-  loading.value = true
-  error.value = ''
-  success.value = false
+  if (loading.value) return;
+  loading.value = true;
+  error.value = '';
+  success.value = false;
 
   try {
-    await sendPasswordResetEmail(auth, email.value)
-    success.value = true
+    await sendPasswordResetEmail(auth, email.value);
+    success.value = true;
   } catch (e: any) {
-    error.value = 'Erro ao enviar email de recuperação. Verifique o email informado.'
+    error.value =
+      'Erro ao enviar email de recuperação. Verifique o email informado.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <template>
   <div class="flex justify-center items-center min-h-[80vh]">
     <div class="flex flex-col md:flex-row w-full max-w-4xl mx-auto">
       <!-- Logo Section -->
-      <div class="flex flex-col items-center justify-center w-full md:w-1/2 bg-card rounded-l-lg md:rounded-l-none mb-6 md:mb-0">
+      <div
+        class="flex flex-col items-center justify-center w-full md:w-1/2 bg-card rounded-l-lg md:rounded-l-none mb-6 md:mb-0"
+      >
         <div class="text-center">
-          <img src="../assets/logo.png" alt="Logo" class="w-32 h-32 mx-auto mb-4" />
+          <img
+            src="../assets/logo.png"
+            alt="Logo"
+            class="w-32 h-32 mx-auto mb-4"
+          />
           <h1 class="text-2xl font-bold text-primary">Adote um Amigo</h1>
           <p class="text-gray-600">Recupere o acesso à sua conta</p>
         </div>
@@ -42,7 +49,10 @@ const handleRecoverPassword = async () => {
         <h2 class="text-2xl font-bold text-primary mb-6">Recuperar Senha</h2>
 
         <!-- Success message -->
-        <div v-if="success" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+        <div
+          v-if="success"
+          class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"
+        >
           Email de recuperação enviado! Verifique sua caixa de entrada.
         </div>
 
@@ -58,16 +68,15 @@ const handleRecoverPassword = async () => {
             />
           </div>
           <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-          <button 
-            type="submit" 
-            class="btn-primary w-full"
-            :disabled="loading"
-          >
+          <button type="submit" class="btn-primary w-full" :disabled="loading">
             {{ loading ? 'Enviando...' : 'Enviar Email de Recuperação' }}
           </button>
           <p class="text-center text-sm">
             Lembrou sua senha?
-            <router-link to="/login" class="text-primary hover:text-primary-hover">
+            <router-link
+              to="/login"
+              class="text-primary hover:text-primary-hover"
+            >
               Voltar para o login
             </router-link>
           </p>

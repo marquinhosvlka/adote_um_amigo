@@ -1,33 +1,42 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { auth } from '../firebase/config'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { auth } from '../firebase/config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
-const router = useRouter()
-const email = ref('')
-const password = ref('')
-const error = ref('')
+const router = useRouter();
+const email = ref('');
+const password = ref('');
+const error = ref('');
 
 const handleLogin = async () => {
   try {
-    await signInWithEmailAndPassword(auth, email.value, password.value)
-    router.push('/')
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+    router.push('/');
   } catch (e: any) {
-    error.value = 'Email ou senha incorretos'
+    error.value = 'Email ou senha incorretos';
   }
-}
+};
 </script>
 
 <template>
   <div class="flex justify-center items-center min-h-[80vh]">
     <div class="flex flex-col md:flex-row w-full max-w-4xl mx-auto">
       <!-- Logo Section (Mobile: Above Form) -->
-      <div class="w-full md:w-1/2 flex justify-center items-center bg-card rounded-t-lg md:rounded-l-lg mb-6 md:mb-0">
+      <div
+        class="w-full md:w-1/2 flex justify-center items-center bg-card rounded-t-lg md:rounded-l-lg mb-6 md:mb-0"
+      >
         <div class="text-center p-4">
-          <img src="../assets/logo.png" alt="Logo" class="w-32 h-32 mx-auto mb-4" />
+          <img
+            src="../assets/logo.png"
+            alt="Logo"
+            class="w-32 h-32 mx-auto mb-4"
+          />
           <h1 class="text-2xl font-bold text-primary">Adote um Amigo</h1>
-          <p class="text-gray-600 hidden md:block">Encontre seu companheiro perfeito</p> <!-- Hidden in Mobile -->
+          <p class="text-gray-600 hidden md:block">
+            Encontre seu companheiro perfeito
+          </p>
+          <!-- Hidden in Mobile -->
         </div>
       </div>
 
@@ -54,7 +63,10 @@ const handleLogin = async () => {
             />
           </div>
           <div class="text-right">
-            <router-link to="/recover-password" class="text-sm text-primary hover:text-primary-hover">
+            <router-link
+              to="/recover-password"
+              class="text-sm text-primary hover:text-primary-hover"
+            >
               Esqueceu sua senha?
             </router-link>
           </div>
@@ -62,7 +74,10 @@ const handleLogin = async () => {
           <button type="submit" class="btn-primary w-full">Entrar</button>
           <p class="text-center text-sm">
             Não tem uma conta?
-            <router-link to="/register" class="text-primary hover:text-primary-hover">
+            <router-link
+              to="/register"
+              class="text-primary hover:text-primary-hover"
+            >
               Cadastre-se
             </router-link>
           </p>

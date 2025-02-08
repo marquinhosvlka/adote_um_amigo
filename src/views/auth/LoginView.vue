@@ -1,15 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div
+    class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8"
+  >
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
       <div class="flex justify-center">
         <PawPrint class="h-12 w-12 text-purple-600" />
       </div>
-      <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+      <h2
+        class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900"
+      >
         Bem-vindo ao Pet Amigo
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">
         Não tem uma conta?
-        <router-link to="/register" class="font-medium text-purple-600 hover:text-purple-500">
+        <router-link
+          to="/register"
+          class="font-medium text-purple-600 hover:text-purple-500"
+        >
           Cadastre-se gratuitamente
         </router-link>
       </p>
@@ -34,7 +41,10 @@
           </div>
 
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">
+            <label
+              for="password"
+              class="block text-sm font-medium text-gray-700"
+            >
               Senha
             </label>
             <div class="mt-1">
@@ -56,13 +66,19 @@
                 type="checkbox"
                 class="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
-              <label for="show-password" class="ml-2 block text-sm text-gray-900">
+              <label
+                for="show-password"
+                class="ml-2 block text-sm text-gray-900"
+              >
                 Mostrar senha
               </label>
             </div>
 
             <div class="text-sm">
-              <router-link to="/forgot-password" class="font-medium text-purple-600 hover:text-purple-500">
+              <router-link
+                to="/forgot-password"
+                class="font-medium text-purple-600 hover:text-purple-500"
+              >
                 Esqueceu sua senha?
               </router-link>
             </div>
@@ -97,7 +113,7 @@ const handleLogin = async () => {
   isLoading.value = true;
   try {
     // Implement login logic here
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log('Login:', { email: email.value, password: password.value });
   } finally {
     isLoading.value = false;

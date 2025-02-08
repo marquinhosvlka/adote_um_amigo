@@ -1,58 +1,71 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { auth, db } from '../firebase/config'
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { doc, setDoc } from 'firebase/firestore'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { auth, db } from '../firebase/config';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
-const router = useRouter()
-const name = ref('')
-const email = ref('')
-const password = ref('')
-const phone = ref('')
-const error = ref('')
-const loading = ref(false)
+const router = useRouter();
+const name = ref('');
+const email = ref('');
+const password = ref('');
+const phone = ref('');
+const error = ref('');
+const loading = ref(false);
 
 const handleRegister = async () => {
-  if (loading.value) return
-  loading.value = true
-  error.value = ''
+  if (loading.value) return;
+  loading.value = true;
+  error.value = '';
 
   try {
-    const { user } = await createUserWithEmailAndPassword(auth, email.value, password.value)
-    
+    const { user } = await createUserWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    );
+
     await updateProfile(user, {
-      displayName: name.value
-    })
+      displayName: name.value,
+    });
 
     await setDoc(doc(db, 'users', user.uid), {
       name: name.value,
       email: email.value,
       phone: phone.value,
-      createdAt: new Date()
-    })
+      createdAt: new Date(),
+    });
 
-    router.push('/')
+    router.push('/');
   } catch (e: any) {
-    console.error('Erro no registro:', e)
-    error.value = e.code === 'auth/email-already-in-use' 
-      ? 'Este email já está em uso'
-      : 'Erro ao criar conta. Tente novamente.'
+    console.error('Erro no registro:', e);
+    error.value =
+      e.code === 'auth/email-already-in-use'
+        ? 'Este email já está em uso'
+        : 'Erro ao criar conta. Tente novamente.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <template>
   <div class="flex justify-center items-center min-h-[80vh]">
     <div class="flex flex-col md:flex-row w-full max-w-4xl mx-auto">
       <!-- Logo Section (Mobile: Above Form) -->
-      <div class="w-full md:w-1/2 flex justify-center items-center bg-card rounded-t-lg md:rounded-l-lg mb-6 md:mb-0">
+      <div
+        class="w-full md:w-1/2 flex justify-center items-center bg-card rounded-t-lg md:rounded-l-lg mb-6 md:mb-0"
+      >
         <div class="text-center p-4">
-          <img src="../assets/logo.png" alt="Logo" class="w-32 h-32 mx-auto mb-4" />
+          <img
+            src="../assets/logo.png"
+            alt="Logo"
+            class="w-32 h-32 mx-auto mb-4"
+          />
           <h1 class="text-2xl font-bold text-primary">Adote um Amigo</h1>
-          <p class="text-gray-600 hidden md:block">Junte-se a nós e ajude a encontrar lares para pets</p>
+          <p class="text-gray-600 hidden md:block">
+            Junte-se a nós e ajude a encontrar lares para pets
+          </p>
         </div>
       </div>
 
@@ -79,7 +92,9 @@ const handleRegister = async () => {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Telefone</label>
+            <label class="block text-sm font-medium text-gray-700"
+              >Telefone</label
+            >
             <input
               type="tel"
               v-model="phone"
@@ -99,16 +114,15 @@ const handleRegister = async () => {
             <p class="text-sm text-gray-500 mt-1">Mínimo de 6 caracteres</p>
           </div>
           <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-          <button 
-            type="submit" 
-            class="btn-primary w-full"
-            :disabled="loading"
-          >
+          <button type="submit" class="btn-primary w-full" :disabled="loading">
             {{ loading ? 'Cadastrando...' : 'Cadastrar' }}
           </button>
           <p class="text-center text-sm">
             Já tem uma conta?
-            <router-link to="/login" class="text-primary hover:text-primary-hover">
+            <router-link
+              to="/login"
+              class="text-primary hover:text-primary-hover"
+            >
               Faça login
             </router-link>
           </p>

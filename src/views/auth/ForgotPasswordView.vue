@@ -1,15 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div
+    class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8"
+  >
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
       <div class="flex justify-center">
         <PawPrint class="h-12 w-12 text-purple-600" />
       </div>
-      <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+      <h2
+        class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900"
+      >
         Recuperar senha
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">
         Lembrou sua senha?
-        <router-link to="/login" class="font-medium text-purple-600 hover:text-purple-500">
+        <router-link
+          to="/login"
+          class="font-medium text-purple-600 hover:text-purple-500"
+        >
           Voltar para login
         </router-link>
       </p>
@@ -17,7 +24,11 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <form v-if="!emailSent" class="space-y-6" @submit.prevent="handleForgotPassword">
+        <form
+          v-if="!emailSent"
+          class="space-y-6"
+          @submit.prevent="handleForgotPassword"
+        >
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700">
               Email
@@ -49,8 +60,8 @@
           <CheckCircle class="mx-auto h-12 w-12 text-green-500" />
           <h3 class="mt-4 text-lg font-medium text-gray-900">Email enviado!</h3>
           <p class="mt-2 text-sm text-gray-600">
-            Enviamos as instruções de recuperação de senha para {{ email }}. 
-            Por favor, verifique sua caixa de entrada.
+            Enviamos as instruções de recuperação de senha para {{ email }}. Por
+            favor, verifique sua caixa de entrada.
           </p>
           <div class="mt-6">
             <router-link
@@ -78,7 +89,7 @@ const handleForgotPassword = async () => {
   isLoading.value = true;
   try {
     // Implement password recovery logic here
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log('Password recovery:', { email: email.value });
     emailSent.value = true;
   } finally {

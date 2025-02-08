@@ -1,161 +1,273 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { db, storage } from '../firebase/config'
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
-import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
-import { useAuthStore } from '../stores/auth'
-import PetCard from '../components/PetCard.vue'
+import { ref, onMounted } from 'vue';
+import { db } from '../firebase/config';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useAuthStore } from '../stores/auth';
+import { useNotificationsStore } from '../stores/notifications';
+import { useAdoptionsStore } from '../stores/adoptions';
+import PetCard from '../components/PetCard.vue';
+import Notification from '../components/Notification.vue';
+import { isValidEmail, isValidPhone, isValidName, formatPhone } from '../utils/validators';
 
-// Estado e variáveis
-const authStore = useAuthStore()
-const myPets = ref<any[]>([]) // Adicionado tipo 'any' para pets
-const loading = ref(true)
+const authStore = useAuthStore();
+const notificationsStore = useNotificationsStore();
+const adoptionsStore = useAdoptionsStore();
+const myPets = ref<any[]>([]);
+const adoptedPets = ref<any[]>([]);
+const notifications = ref<any[]>([]);
+const myAdoptionRequests = ref<any[]>([]);
+const loading = ref(true);
+const error = ref('');
 
-// Campos do perfil
-const editingProfile = ref(false)
-const userName = ref(authStore.userData?.name || '')
-const userEmail = ref(authStore.userData?.email || '')
-const userPhone = ref(authStore.userData?.phone || '')
-const userAddress = ref(authStore.userData?.address || '')
-const userPhotoUrl = ref(authStore.userData?.photoUrl || '')
-const newPhotoFile = ref<File | null>(null)
+// Profile fields
+const editingProfile = ref(false);
+const userName = ref(authStore.userData?.name || '');
+const userEmail = ref(authStore.userData?.email || '');
+const userPhone = ref(authStore.userData?.phone || '');
+const formErrors = ref({
+  name: '',
+  email: '',
+  phone: '',
+});
 
-// Função para buscar os pets do usuário
-const fetchMyPets = async () => {
-  if (!authStore.user) return
-  
+const validateForm = () => {
+  let isValid = true;
+  formErrors.value = {
+    name: '',
+    email: '',
+    phone: '',
+  };
+
+  if (!isValidName(userName.value)) {
+    formErrors.value.name = 'Nome deve ter entre 2 e 50 caracteres';
+    isValid = false;
+  }
+
+  if (!isValidEmail(userEmail.value)) {
+    formErrors.value.email = 'Email inválido';
+    isValid = false;
+  }
+
+  if (!isValidPhone(userPhone.value)) {
+    formErrors.value.phone = 'Telefone inválido';
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+// Fetch user's pets (both for adoption and adopted)
+const fetchPets = async () => {
+  if (!authStore.user) return;
+
   try {
-    const q = query(
+    // Fetch pets for adoption
+    const forAdoptionQuery = query(
       collection(db, 'pets'),
       where('userId', '==', authStore.user.uid)
-    )
-    const snapshot = await getDocs(q)
-    myPets.value = snapshot.docs.map(doc => ({
+    );
+    const forAdoptionSnapshot = await getDocs(forAdoptionQuery);
+    myPets.value = forAdoptionSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }))
+    }));
+
+    // Fetch adopted pets
+    const adoptedQuery = query(
+      collection(db, 'pets'),
+      where('adoptedBy', '==', authStore.user.uid)
+    );
+    const adoptedSnapshot = await getDocs(adoptedQuery);
+    adoptedPets.value = adoptedSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // Fetch adoption requests
+    myAdoptionRequests.value = await adoptionsStore.fetchUserAdoptionRequests(
+      authStore.user.uid
+    );
+
+    // Fetch notifications
+    notifications.value = await notificationsStore.fetchUserNotifications(authStore.user.uid);
   } catch (error) {
-    console.error('Erro ao buscar pets:', error)
+    console.error('Error fetching data:', error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
-// Função para atualizar o perfil do usuário
-const saveProfile = async () => {
-  if (!authStore.user) return
-  
-  try {
-    let photoUrl = userPhotoUrl.value
-    
-    // Se houver uma nova foto, faz o upload para o Firebase Storage
-    if (newPhotoFile.value) {
-      const storagePath = `profilePhotos/${authStore.user.uid}`
-      const photoRef = storageRef(storage, storagePath)
-      await uploadBytes(photoRef, newPhotoFile.value)
-      photoUrl = await getDownloadURL(photoRef)
-    }
-
-    const userDoc = doc(db, 'users', authStore.user.uid)
-    await updateDoc(userDoc, {
-      name: userName.value,
-      email: userEmail.value,
-      phone: userPhone.value,
-      address: userAddress.value,
-      photoUrl
-    })
-
-    // Atualiza os dados localmente no store
-    authStore.userData.name = userName.value
-    authStore.userData.email = userEmail.value
-    authStore.userData.phone = userPhone.value
-    authStore.userData.address = userAddress.value
-    authStore.userData.photoUrl = photoUrl
-
-    editingProfile.value = false
-  } catch (error) {
-    console.error('Erro ao atualizar perfil:', error)
-  }
-}
-
-onMounted(fetchMyPets)
+onMounted(fetchPets);
 </script>
 
 <template>
-  <div>
+  <div class="container mx-auto px-4">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-2">Meu Perfil</h1>
-      
-      <div v-if="authStore.userData" class="card mb-6">
+      <h1 class="text-3xl font-bold text-primary mb-6">Meu Perfil</h1>
+
+      <!-- Profile Information -->
+      <div class="card mb-6">
         <h2 class="text-xl font-semibold mb-4">Informações Pessoais</h2>
-        
-        <div v-if="editingProfile" class="space-y-4">
-          <label class="block">
-            <span class="font-medium">Nome:</span>
-            <input v-model="userName" class="input" type="text" />
-          </label>
-          <label class="block">
-            <span class="font-medium">Email:</span>
-            <input v-model="userEmail" class="input" type="email" />
-          </label>
-          <label class="block">
-            <span class="font-medium">Telefone:</span>
-            <input v-model="userPhone" class="input" type="tel" />
-          </label>
-          <label class="block">
-            <span class="font-medium">Endereço:</span>
-            <input v-model="userAddress" class="input" type="text" />
-          </label>
-          <button @click="saveProfile" class="btn-primary mt-4">Salvar</button>
-          <button @click="editingProfile = false" class="btn-secondary mt-2">Cancelar</button>
-        </div>
-        
-        <div v-else class="space-y-2">
-          <div class="flex items-center space-x-4">
-            <img v-if="authStore.userData.photoUrl" :src="authStore.userData.photoUrl" alt="Foto de Perfil" class="w-16 h-16 rounded-full" />
-            <p><span class="font-medium">Nome:</span> {{ authStore.userData.name }}</p>
+
+        <form v-if="editingProfile" @submit.prevent="saveProfile" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Nome</label>
+            <input
+              v-model="userName"
+              type="text"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+              :class="{ 'border-red-500': formErrors.name }"
+            />
+            <p v-if="formErrors.name" class="text-red-500 text-sm mt-1">
+              {{ formErrors.name }}
+            </p>
           </div>
-          <p><span class="font-medium">Email:</span> {{ authStore.userData.email }}</p>
-          <p><span class="font-medium">Telefone:</span> {{ authStore.userData.phone }}</p>
-          <p><span class="font-medium">Endereço:</span> {{ authStore.userData.address || 'Não informado' }}</p>
-          <button @click="editingProfile = true" class="btn-primary mt-4">Editar Perfil</button>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              v-model="userEmail"
+              type="email"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+              :class="{ 'border-red-500': formErrors.email }"
+            />
+            <p v-if="formErrors.email" class="text-red-500 text-sm mt-1">
+              {{ formErrors.email }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Telefone</label>
+            <input
+              v-model="userPhone"
+              type="tel"
+              @input="userPhone = formatPhone(userPhone)"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+              :class="{ 'border-red-500': formErrors.phone }"
+            />
+            <p v-if="formErrors.phone" class="text-red-500 text-sm mt-1">
+              {{ formErrors.phone }}
+            </p>
+          </div>
+
+          <div class="flex justify-end space-x-4">
+            <button
+              type="button"
+              @click="editingProfile = false"
+              class="btn-secondary"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              Salvar
+            </button>
+          </div>
+        </form>
+
+        <div v-else>
+          <div class="space-y-4">
+            <p><strong>Nome:</strong> {{ userName }}</p>
+            <p><strong>Email:</strong> {{ userEmail }}</p>
+            <p><strong>Telefone:</strong> {{ formatPhone(userPhone) }}</p>
+            <button @click="editingProfile = true" class="btn-primary">
+              Editar Perfil
+            </button>
+          </div>
         </div>
       </div>
 
-      <h2 class="text-2xl font-bold text-primary mb-4">Meus Pets Anunciados</h2>
-      <div v-if="loading" class="text-center py-8">
-        <p class="text-gray-600">Carregando...</p>
+      <!-- Notifications -->
+      <div v-if="notifications.length > 0" class="card mb-6">
+        <h2 class="text-xl font-semibold mb-4">Notificações</h2>
+        <div class="space-y-4">
+          <div
+            v-for="notification in notifications"
+            :key="notification.id"
+            class="p-4 rounded-lg bg-white shadow"
+            :class="{ 'bg-gray-50': notification.read }"
+          >
+            <p class="text-gray-800">{{ notification.message }}</p>
+            <p class="text-sm text-gray-500 mt-1">
+              {{ new Date(notification.createdAt.toDate()).toLocaleDateString() }}
+            </p>
+          </div>
+        </div>
       </div>
-      <div v-else-if="myPets.length === 0" class="text-center py-8">
-        <p class="text-gray-600">Você ainda não anunciou nenhum pet.</p>
+
+      <!-- Pets for Adoption -->
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold text-primary mb-4">
+          Meus Pets para Adoção
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <PetCard v-for="pet in myPets" :key="pet.id" :pet="pet" />
+        </div>
       </div>
-      <div class="text-center mb-4">
-        <router-link to="/create-pet" class="btn-primary">Anunciar um Pet</router-link>
+
+      <!-- Adopted Pets -->
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold text-primary mb-4">Pets Adotados</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <PetCard v-for="pet in adoptedPets" :key="pet.id" :pet="pet" />
+        </div>
       </div>
-      <div v-if="myPets.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <PetCard v-for="pet in myPets" :key="pet.id" :pet="pet" />
+
+      <!-- My Adoption Requests -->
+      <div v-if="myAdoptionRequests.length > 0" class="mb-8">
+        <h2 class="text-2xl font-bold text-primary mb-4">Meus Pedidos de Adoção</h2>
+        <div class="grid grid-cols-1 gap-4">
+          <div
+            v-for="request in myAdoptionRequests"
+            :key="request.id"
+            class="card p-4"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold">{{ request.petData.name }}</h3>
+                <p class="text-sm text-gray-600">
+                  Solicitado em: {{ new Date(request.createdAt.toDate()).toLocaleDateString() }}
+                </p>
+                <p class="mt-2">
+                  Status:
+                  <span
+                    :class="{
+                      'text-yellow-600': request.status === 'pending',
+                      'text-green-600': request.status === 'approved',
+                      'text-red-600': request.status === 'rejected'
+                    }"
+                  >
+                    {{ 
+                      request.status === 'pending' ? 'Pendente' :
+                      request.status === 'approved' ? 'Aprovado' :
+                      'Recusado'
+                    }}
+                  </span>
+                </p>
+              </div>
+              <router-link
+                :to="`/pet/${request.petId}`"
+                class="btn-primary text-sm"
+              >
+                Ver Pet
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 0.25rem;
-}
 .btn-primary {
-  background-color: #4CAF50;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  @apply bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors;
 }
+
 .btn-secondary {
-  background-color: #ddd;
-  color: black;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  @apply bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors;
+}
+
+.card {
+  @apply bg-white p-6 rounded-lg shadow-md;
 }
 </style>

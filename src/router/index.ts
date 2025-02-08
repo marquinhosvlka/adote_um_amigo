@@ -6,49 +6,50 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: Home,
   },
   {
     path: '/login',
     name: 'Login',
-    component: () => import('../views/Login.vue')
+    component: () => import('../views/Login.vue'),
   },
   {
     path: '/register',
     name: 'Register',
-    component: () => import('../views/Register.vue')
+    component: () => import('../views/Register.vue'),
   },
   {
     path: '/recover-password',
     name: 'RecoverPassword',
-    component: () => import('../views/RecoverPassword.vue')
+    component: () => import('../views/RecoverPassword.vue'),
   },
   {
     path: '/profile',
     name: 'Profile',
     component: () => import('../views/Profile.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/create-pet',
     name: 'CreatePet',
     component: () => import('../views/CreatePet.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/pet/:id',
     name: 'PetDetails',
-    component: () => import('../views/PetDetails.vue')
-  }
+    component: () => import('../views/PetDetails.vue'),
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 });
 
-router.beforeEach((to, _, next) => { // Removido o parâmetro 'from'
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+router.beforeEach((to, _, next) => {
+  // Removido o parâmetro 'from'
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
   const isAuthenticated = auth.currentUser;
 
   if (requiresAuth && !isAuthenticated) {
