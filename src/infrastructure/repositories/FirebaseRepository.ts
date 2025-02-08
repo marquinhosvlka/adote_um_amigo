@@ -12,7 +12,9 @@ import {
   query,
   where,
   QueryConstraint,
-  DocumentData
+  DocumentData,
+  DocumentReference,
+  WithFieldValue,
 } from 'firebase/firestore';
 
 export class FirebaseRepository<T extends IEntity> implements IRepository<T> {
@@ -29,15 +31,15 @@ export class FirebaseRepository<T extends IEntity> implements IRepository<T> {
     const docRef = await addDoc(collection(db, this.collectionName), {
       ...entity,
       createdAt: new Date()
-    });
+    } as WithFieldValue<DocumentData>);
     
-    const newDoc = await getDoc(docRef);
+    const newDoc = await getDoc(docRef as DocumentReference<DocumentData, T>);
     return this.convertToEntity(newDoc);
   }
 
   async update(id: string, entity: Partial<T>): Promise<T> {
-    const docRef = doc(db, this.collectionName, id);
-    await updateDoc(docRef, { ...entity });
+    const docRef = doc(db, this.collectionName, id) as DocumentReference<DocumentData, T>;
+    await updateDoc(docRef, { ...entity } as WithFieldValue<DocumentData>);
     
     const updatedDoc = await getDoc(docRef);
     return this.convertToEntity(updatedDoc);
@@ -49,7 +51,7 @@ export class FirebaseRepository<T extends IEntity> implements IRepository<T> {
   }
 
   async findById(id: string): Promise<T | null> {
-    const docRef = doc(db, this.collectionName, id);
+    const docRef = doc(db, this.collectionName, id) as DocumentReference<DocumentData, T>;
     const docSnap = await getDoc(docRef);
     
     if (!docSnap.exists()) {

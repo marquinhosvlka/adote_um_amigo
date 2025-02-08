@@ -1,4 +1,4 @@
-import { Pet, CreatePetDTO, UpdatePetDTO } from '../../core/entities/Pet';
+import { Pet } from '../../core/entities/Pet';
 import { FirebaseRepository } from './FirebaseRepository';
 
 export class PetRepository extends FirebaseRepository<Pet> {

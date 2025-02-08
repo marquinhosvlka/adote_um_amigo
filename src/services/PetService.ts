@@ -9,10 +9,7 @@ export class PetService {
   }
 
   async createPet(data: CreatePetDTO): Promise<Pet> {
-    return this.repository.create({
-      ...data,
-      status: 'available'
-    });
+    return this.repository.create(data);
   }
 
   async updatePet(id: string, data: UpdatePetDTO): Promise<Pet> {

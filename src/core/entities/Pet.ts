@@ -13,8 +13,10 @@ export interface Pet extends IEntity {
   state: string;
   userId: string;
   status: 'available' | 'pending' | 'adopted';
+  adoptedBy?: string;
+  adoptedAt?: Date;
   createdAt: Date;
 }
 
-export type CreatePetDTO = Omit<Pet, 'id' | 'createdAt' | 'status'>;
+export type CreatePetDTO = Omit<Pet, 'id' | 'createdAt' | 'status' | 'adoptedBy' | 'adoptedAt'>;
 export type UpdatePetDTO = Partial<CreatePetDTO>;

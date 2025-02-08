@@ -1,4 +1,4 @@
-import { User, CreateUserDTO, UpdateUserDTO } from '../../core/entities/User';
+import { User } from '../../core/entities/User';
 import { FirebaseRepository } from './FirebaseRepository';
 
 export class UserRepository extends FirebaseRepository<User> {
