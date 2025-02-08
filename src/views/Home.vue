@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { db } from '../firebase/config';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import PetCard from '../components/PetCard.vue';
 import PetFilter from '../components/PetFilter.vue';
 

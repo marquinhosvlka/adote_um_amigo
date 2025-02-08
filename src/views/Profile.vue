@@ -6,7 +6,6 @@ import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { useAdoptionsStore } from '../stores/adoptions';
 import PetCard from '../components/PetCard.vue';
-import Notification from '../components/Notification.vue';
 import { isValidEmail, isValidPhone, isValidName, formatPhone } from '../utils/validators';
 
 const authStore = useAuthStore();
@@ -17,7 +16,6 @@ const adoptedPets = ref<any[]>([]);
 const notifications = ref<any[]>([]);
 const myAdoptionRequests = ref<any[]>([]);
 const loading = ref(true);
-const error = ref('');
 
 // Profile fields
 const editingProfile = ref(false);
@@ -54,6 +52,17 @@ const validateForm = () => {
   }
 
   return isValid;
+};
+
+const saveProfile = async () => {
+  if (!validateForm()) return;
+  
+  try {
+    // Add your save profile logic here
+    editingProfile.value = false;
+  } catch (error) {
+    console.error('Error saving profile:', error);
+  }
 };
 
 // Fetch user's pets (both for adoption and adopted)

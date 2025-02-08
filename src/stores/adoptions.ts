@@ -7,10 +7,9 @@ import {
   query,
   where,
   getDocs,
-  updateDoc,
   doc,
-  getDoc,
   writeBatch,
+  getDoc,
 } from 'firebase/firestore';
 
 export const useAdoptionsStore = defineStore('adoptions', () => {

@@ -179,7 +179,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { db } from '../firebase/config';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { useAuthStore } from '../stores/auth';
 import { useAdoptionsStore } from '../stores/adoptions';
 import { useNotificationsStore } from '../stores/notifications';
@@ -239,15 +239,16 @@ const fetchAdoptionRequests = async () => {
     const requestsSnapshot = await getDocs(requestsRef);
     
     const requests = await Promise.all(
-      requestsSnapshot.docs.map(async (doc) => {
-        const data = doc.data();
+      requestsSnapshot.docs.map(async (docSnapshot) => {
+        const data = docSnapshot.data();
         let adopterInfo = null;
         
         if (data.adopterId) {
           try {
-            const adopterDoc = await getDoc(doc(db, 'users', data.adopterId));
-            if (adopterDoc.exists()) {
-              adopterInfo = adopterDoc.data();
+            const adopterDocRef = doc(db, 'users', data.adopterId);
+            const adopterDocSnapshot = await getDoc(adopterDocRef);
+            if (adopterDocSnapshot.exists()) {
+              adopterInfo = adopterDocSnapshot.data();
             }
           } catch (error) {
             console.error('Erro ao buscar informações do adotante:', error);
@@ -260,7 +261,7 @@ const fetchAdoptionRequests = async () => {
         }
 
         return {
-          id: doc.id,
+          id: docSnapshot.id,
           ...data,
           adopterInfo: adopterInfo || {
             name: data.adopterName,
