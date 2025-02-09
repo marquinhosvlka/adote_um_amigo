@@ -132,18 +132,7 @@ onMounted(fetchPets);
             </p>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              v-model="userEmail"
-              type="email"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-              :class="{ 'border-red-500': formErrors.email }"
-            />
-            <p v-if="formErrors.email" class="text-red-500 text-sm mt-1">
-              {{ formErrors.email }}
-            </p>
-          </div>
+          
 
           <div>
             <label class="block text-sm font-medium text-gray-700">Telefone</label>
