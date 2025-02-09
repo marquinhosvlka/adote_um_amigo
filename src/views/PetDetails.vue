@@ -7,9 +7,12 @@
     <!-- Notification -->
     <div
       v-if="showNotification"
-      class="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 flex items-center justify-between"
+      class="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 flex items-center justify-between max-w-md"
     >
-      <span>{{ notificationMessage }}</span>
+      <div>
+        <p class="mb-2">{{ notificationMessage }}</p>
+        <p class="text-sm">O dono do pet entrará em contato em breve através do email, telefone ou WhatsApp informado.</p>
+      </div>
       <button
         @click="showNotification = false"
         class="ml-4 text-white hover:text-gray-200 focus:outline-none"
@@ -354,7 +357,7 @@ const handleAdoptionRequest = async () => {
     showNotification.value = true;
     setTimeout(() => {
       showNotification.value = false;
-    }, 5000);
+    }, 8000); // Increased timeout to give more time to read the message
     
     // Reset form and close it
     showAdoptionForm.value = false;

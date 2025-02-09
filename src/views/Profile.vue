@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { db } from '../firebase/config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { useAdoptionsStore } from '../stores/adoptions';
 import PetCard from '../components/PetCard.vue';
-import { isValidEmail, isValidPhone, isValidName, formatPhone } from '../utils/validators';
+import { isValidPhone, isValidName, formatPhone } from '../utils/validators';
 
 const authStore = useAuthStore();
 const notificationsStore = useNotificationsStore();
@@ -16,6 +16,7 @@ const adoptedPets = ref<any[]>([]);
 const notifications = ref<any[]>([]);
 const myAdoptionRequests = ref<any[]>([]);
 const loading = ref(true);
+const saveLoading = ref(false);
 
 // Profile fields
 const editingProfile = ref(false);
@@ -24,25 +25,19 @@ const userEmail = ref(authStore.userData?.email || '');
 const userPhone = ref(authStore.userData?.phone || '');
 const formErrors = ref({
   name: '',
-  email: '',
   phone: '',
 });
+const updateSuccess = ref(false);
 
 const validateForm = () => {
   let isValid = true;
   formErrors.value = {
     name: '',
-    email: '',
     phone: '',
   };
 
   if (!isValidName(userName.value)) {
     formErrors.value.name = 'Nome deve ter entre 2 e 50 caracteres';
-    isValid = false;
-  }
-
-  if (!isValidEmail(userEmail.value)) {
-    formErrors.value.email = 'Email inválido';
     isValid = false;
   }
 
@@ -55,14 +50,50 @@ const validateForm = () => {
 };
 
 const saveProfile = async () => {
-  if (!validateForm()) return;
+  if (!validateForm() || !authStore.user) return;
   
+  saveLoading.value = true;
   try {
-    // Add your save profile logic here
+    const userRef = doc(db, 'users', authStore.user.uid);
+    const updateData = {
+      name: userName.value,
+      phone: userPhone.value,
+    };
+
+    await updateDoc(userRef, updateData);
+    
+    // Update local state
+    if (authStore.userData) {
+      authStore.userData.name = userName.value;
+      authStore.userData.phone = userPhone.value;
+    }
+
     editingProfile.value = false;
+    updateSuccess.value = true;
+    setTimeout(() => {
+      updateSuccess.value = false;
+    }, 3000);
   } catch (error) {
     console.error('Error saving profile:', error);
+    formErrors.value.name = 'Erro ao salvar perfil. Tente novamente.';
+  } finally {
+    saveLoading.value = false;
   }
+};
+
+const startEditing = () => {
+  // Reset form values to current user data
+  userName.value = authStore.userData?.name || '';
+  userPhone.value = authStore.userData?.phone || '';
+  editingProfile.value = true;
+};
+
+const cancelEditing = () => {
+  // Reset form values and exit edit mode
+  userName.value = authStore.userData?.name || '';
+  userPhone.value = authStore.userData?.phone || '';
+  editingProfile.value = false;
+  formErrors.value = { name: '', phone: '' };
 };
 
 // Fetch user's pets (both for adoption and adopted)
@@ -118,6 +149,14 @@ onMounted(fetchPets);
       <div class="card mb-6">
         <h2 class="text-xl font-semibold mb-4">Informações Pessoais</h2>
 
+        <!-- Success Message -->
+        <div
+          v-if="updateSuccess"
+          class="mb-4 p-4 bg-green-100 text-green-700 rounded-md"
+        >
+          Perfil atualizado com sucesso!
+        </div>
+
         <form v-if="editingProfile" @submit.prevent="saveProfile" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">Nome</label>
@@ -132,7 +171,16 @@ onMounted(fetchPets);
             </p>
           </div>
 
-          
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              :value="userEmail"
+              type="email"
+              disabled
+              class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm cursor-not-allowed"
+            />
+            <p class="text-sm text-gray-500 mt-1">O email não pode ser alterado</p>
+          </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700">Telefone</label>
@@ -151,26 +199,43 @@ onMounted(fetchPets);
           <div class="flex justify-end space-x-4">
             <button
               type="button"
-              @click="editingProfile = false"
+              @click="cancelEditing"
               class="btn-secondary"
+              :disabled="saveLoading"
             >
               Cancelar
             </button>
-            <button type="submit" class="btn-primary">
-              Salvar
+            <button 
+              type="submit" 
+              class="btn-primary"
+              :disabled="saveLoading"
+            >
+              {{ saveLoading ? 'Salvando...' : 'Salvar' }}
             </button>
           </div>
         </form>
 
-        <div v-else>
-          <div class="space-y-4">
-            <p><strong>Nome:</strong> {{ userName }}</p>
-            <p><strong>Email:</strong> {{ userEmail }}</p>
-            <p><strong>Telefone:</strong> {{ formatPhone(userPhone) }}</p>
-            <button @click="editingProfile = true" class="btn-primary">
-              Editar Perfil
-            </button>
+        <div v-else class="space-y-4">
+          <div class="grid grid-cols-1 gap-4">
+            <div class="border-b pb-2">
+              <p class="text-sm text-gray-600">Nome</p>
+              <p class="font-medium">{{ authStore.userData?.name }}</p>
+            </div>
+            
+            <div class="border-b pb-2">
+              <p class="text-sm text-gray-600">Email</p>
+              <p class="font-medium">{{ authStore.userData?.email }}</p>
+            </div>
+            
+            <div class="border-b pb-2">
+              <p class="text-sm text-gray-600">Telefone</p>
+              <p class="font-medium">{{ formatPhone(authStore.userData?.phone) }}</p>
+            </div>
           </div>
+          
+          <button @click="startEditing" class="btn-primary mt-4">
+            Editar Perfil
+          </button>
         </div>
       </div>
 
@@ -258,11 +323,11 @@ onMounted(fetchPets);
 
 <style scoped>
 .btn-primary {
-  @apply bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors;
+  @apply bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-secondary {
-  @apply bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors;
+  @apply bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .card {

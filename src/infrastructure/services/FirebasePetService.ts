@@ -17,6 +17,22 @@ import {
 export class FirebasePetService implements IPetService {
   private readonly collectionName = 'pets';
 
+  async create(data: CreatePetDTO): Promise<Pet> {
+    return this.createPet(data);
+  }
+
+  async update(id: string, data: UpdatePetDTO): Promise<Pet> {
+    return this.updatePet(id, data);
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.deletePet(id);
+  }
+
+  async getById(id: string): Promise<Pet | null> {
+    return this.getPetById(id);
+  }
+
   async createPet(data: CreatePetDTO): Promise<Pet> {
     const petData = {
       ...data,
@@ -84,10 +100,17 @@ export class FirebasePetService implements IPetService {
   }
 
   async adoptPet(petId: string, adopterId: string): Promise<Pet> {
-    return this.updatePet(petId, {
+    const docRef = doc(db, this.collectionName, petId);
+    await updateDoc(docRef, {
       status: 'adopted',
       adoptedBy: adopterId,
       adoptedAt: new Date()
     });
+
+    const updatedDoc = await getDoc(docRef);
+    return {
+      id: updatedDoc.id,
+      ...updatedDoc.data()
+    } as Pet;
   }
 }

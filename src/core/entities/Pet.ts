@@ -8,7 +8,7 @@ export interface Pet extends IEntity {
   age: number;
   size: 'small' | 'medium' | 'large';
   description: string;
-  imageUrl: string;
+  images: string[];
   city: string;
   state: string;
   userId: string;
@@ -16,7 +16,8 @@ export interface Pet extends IEntity {
   adoptedBy?: string;
   adoptedAt?: Date;
   createdAt: Date;
+  imageUrl: string;
 }
 
-export type CreatePetDTO = Omit<Pet, 'id' | 'createdAt' | 'status' | 'adoptedBy' | 'adoptedAt'>;
+export type CreatePetDTO = Omit<Pet, 'id' | 'createdAt' | 'status' | 'adoptedBy' | 'adoptedAt' | 'images'>;
 export type UpdatePetDTO = Partial<CreatePetDTO>;
