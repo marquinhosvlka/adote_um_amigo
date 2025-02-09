@@ -226,11 +226,13 @@ const handleAdoptionRequest = async () => {
       petId: pet.value.id,
     });
 
-    notificationMessage.value = 'Pedido de adoção enviado com sucesso!';
-    showNotification.value = true;
-    setTimeout(() => {
-      showNotification.value = false;
-    }, 8000);
+    notificationMessage.value = 'Pedido de adoção enviado com sucesso!<br> Aguarde o anunciante entrar em contato <br>por um dos contatos fornecidos!';
+showNotification.value = true;
+
+setTimeout(() => {
+  showNotification.value = false;
+}, 8000);
+
     
     // Reset form and close it
     showAdoptionForm.value = false;
@@ -529,11 +531,11 @@ onMounted(fetchPetDetails);
 
   <!-- Success Notification -->
   <div
-    v-if="showNotification"
-    class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg"
-  >
-    {{ notificationMessage }}
-  </div>
+  v-if="showNotification"
+  class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg"
+  v-html="notificationMessage"
+></div>
+
 
   <!-- Image Modal -->
   <div
@@ -623,4 +625,8 @@ onMounted(fetchPetDetails);
 .btn-secondary {
   @apply bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors;
 }
+.showNotification {
+  white-space: pre-line; 
+}
+
 </style>
