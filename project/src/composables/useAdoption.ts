@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
-import { container } from '../di/container';
+import { container } from '../di/Container';
 import { IPetService } from '../core/interfaces/IPetService';
 
 export interface AdoptionRequestData {

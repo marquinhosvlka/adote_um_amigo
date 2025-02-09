@@ -1,3 +1,4 @@
+import { Container } from './Container.types';
 import { FirebaseAuthService } from '../infrastructure/services/FirebaseAuthService';
 import { FirebaseStorageService } from '../infrastructure/services/FirebaseStorageService';
 import { FirebasePetService } from '../infrastructure/services/FirebasePetService';
@@ -39,4 +40,4 @@ container.register('IAuthService', new FirebaseAuthService());
 container.register('IStorageService', new FirebaseStorageService());
 container.register('IPetService', new FirebasePetService());
 
-export { container, ContainerImpl as Container };
+export { container };

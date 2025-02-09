@@ -1,5 +1,4 @@
 import { User, CreateUserDTO, UpdateUserDTO } from '../entities/User';
-import { IService } from './IService';
 
 export interface IUserService extends IService<User> {
   createUser(data: CreateUserDTO): Promise<User>;
