@@ -273,7 +273,7 @@ const handleAdoptionResponse = async (requestId: string, adopterId: string, stat
     });
 
     notificationMessage.value = status === 'approved' 
-      ? 'Pedido de adoção aprovado com sucesso!'
+      ? 'Pedido de adoção aprovado com sucesso!<br> Entre em contato com alguns dos contatos fornecidos!'
       : 'Pedido de adoção recusado.';
     showNotification.value = true;
     setTimeout(() => {
