@@ -12,6 +12,7 @@ const pets = ref<
     species: string;
     breed: string;
     age: number;
+    ageUnit: 'days' | 'weeks' | 'months' | 'years';
     size: string;
     city: string;
     state: string;
@@ -54,6 +55,7 @@ const fetchPets = async () => {
       species: doc.data().species || '',
       breed: doc.data().breed || '',
       age: doc.data().age || 0,
+      ageUnit: doc.data().ageUnit || 'years',
       size: doc.data().size || '',
       city: doc.data().city || '',
       state: doc.data().state || '',

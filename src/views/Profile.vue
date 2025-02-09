@@ -5,18 +5,24 @@ import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/fire
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { useAdoptionsStore } from '../stores/adoptions';
+import { usePetsStore } from '../stores/pets';
 import PetCard from '../components/PetCard.vue';
 import { isValidPhone, isValidName, formatPhone } from '../utils/validators';
+import { Trash2, Pause, Play, ChevronDown } from 'lucide-vue-next';
+import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue';
 
 const authStore = useAuthStore();
 const notificationsStore = useNotificationsStore();
 const adoptionsStore = useAdoptionsStore();
+const petsStore = usePetsStore();
 const myPets = ref<any[]>([]);
 const adoptedPets = ref<any[]>([]);
 const notifications = ref<any[]>([]);
 const myAdoptionRequests = ref<any[]>([]);
 const loading = ref(true);
 const saveLoading = ref(false);
+const showDeleteModal = ref(false);
+const petToDelete = ref<any>(null);
 
 // Profile fields
 const editingProfile = ref(false);
@@ -82,21 +88,54 @@ const saveProfile = async () => {
 };
 
 const startEditing = () => {
-  // Reset form values to current user data
   userName.value = authStore.userData?.name || '';
   userPhone.value = authStore.userData?.phone || '';
   editingProfile.value = true;
 };
 
 const cancelEditing = () => {
-  // Reset form values and exit edit mode
   userName.value = authStore.userData?.name || '';
   userPhone.value = authStore.userData?.phone || '';
   editingProfile.value = false;
   formErrors.value = { name: '', phone: '' };
 };
 
-// Fetch user's pets (both for adoption and adopted)
+const confirmDelete = (pet: any) => {
+  petToDelete.value = pet;
+  showDeleteModal.value = true;
+};
+
+const deletePet = async () => {
+  if (!petToDelete.value) return;
+  
+  try {
+    await petsStore.deletePet(petToDelete.value.id);
+    myPets.value = myPets.value.filter(p => p.id !== petToDelete.value.id);
+    showDeleteModal.value = false;
+  } catch (error) {
+    console.error('Erro ao excluir pet:', error);
+  }
+};
+
+const togglePetStatus = async (pet: any) => {
+  try {
+    const newStatus = pet.status === 'paused' ? 'available' : 'paused';
+    await petsStore.updatePetStatus(pet.id, newStatus);
+    pet.status = newStatus;
+  } catch (error) {
+    console.error('Erro ao atualizar status do pet:', error);
+  }
+};
+
+const deleteNotification = async (notificationId: string) => {
+  try {
+    await notificationsStore.deleteNotification(notificationId);
+    notifications.value = notifications.value.filter(n => n.id !== notificationId);
+  } catch (error) {
+    console.error('Erro ao excluir notificação:', error);
+  }
+};
+
 const fetchPets = async () => {
   if (!authStore.user) return;
 
@@ -240,82 +279,163 @@ onMounted(fetchPets);
       </div>
 
       <!-- Notifications -->
-      <div v-if="notifications.length > 0" class="card mb-6">
-        <h2 class="text-xl font-semibold mb-4">Notificações</h2>
-        <div class="space-y-4">
-          <div
-            v-for="notification in notifications"
-            :key="notification.id"
-            class="p-4 rounded-lg bg-white shadow"
-            :class="{ 'bg-gray-50': notification.read }"
-          >
-            <p class="text-gray-800">{{ notification.message }}</p>
-            <p class="text-sm text-gray-500 mt-1">
-              {{ new Date(notification.createdAt.toDate()).toLocaleDateString() }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pets for Adoption -->
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold text-primary mb-4">
-          Meus Pets para Adoção
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <PetCard v-for="pet in myPets" :key="pet.id" :pet="pet" />
-        </div>
-      </div>
-
-      <!-- Adopted Pets -->
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold text-primary mb-4">Pets Adotados</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <PetCard v-for="pet in adoptedPets" :key="pet.id" :pet="pet" />
-        </div>
-      </div>
-
-      <!-- My Adoption Requests -->
-      <div v-if="myAdoptionRequests.length > 0" class="mb-8">
-        <h2 class="text-2xl font-bold text-primary mb-4">Meus Pedidos de Adoção</h2>
-        <div class="grid grid-cols-1 gap-4">
-          <div
-            v-for="request in myAdoptionRequests"
-            :key="request.id"
-            class="card p-4"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-lg font-semibold">{{ request.petData.name }}</h3>
-                <p class="text-sm text-gray-600">
-                  Solicitado em: {{ new Date(request.createdAt.toDate()).toLocaleDateString() }}
-                </p>
-                <p class="mt-2">
-                  Status:
-                  <span
-                    :class="{
-                      'text-yellow-600': request.status === 'pending',
-                      'text-green-600': request.status === 'approved',
-                      'text-red-600': request.status === 'rejected'
-                    }"
-                  >
-                    {{ 
-                      request.status === 'pending' ? 'Pendente' :
-                      request.status === 'approved' ? 'Aprovado' :
-                      'Recusado'
-                    }}
-                  </span>
+      <Disclosure v-if="notifications.length > 0" v-slot="{ open }" as="div" class="mb-6">
+        <DisclosureButton class="card w-full flex justify-between items-center p-4">
+          <h2 class="text-xl font-semibold">Notificações</h2>
+          <ChevronDown
+            class="h-5 w-5 transform transition-transform duration-200"
+            :class="{ 'rotate-180': open }"
+          />
+        </DisclosureButton>
+        <DisclosurePanel class="mt-2">
+          <div class="space-y-4">
+            <div
+              v-for="notification in notifications"
+              :key="notification.id"
+              class="p-4 rounded-lg bg-white shadow flex items-center justify-between"
+              :class="{ 'bg-gray-50': notification.read }"
+            >
+              <div class="flex-1">
+                <p class="text-gray-800">{{ notification.message }}</p>
+                <p class="text-sm text-gray-500 mt-1">
+                  {{ new Date(notification.createdAt.toDate()).toLocaleDateString() }}
                 </p>
               </div>
-              <router-link
-                :to="`/pet/${request.petId}`"
-                class="btn-primary text-sm"
+              <button
+                @click="deleteNotification(notification.id)"
+                class="ml-4 p-2 text-gray-500 hover:text-red-500 transition-colors"
+                title="Excluir notificação"
               >
-                Ver Pet
-              </router-link>
+                <Trash2 class="h-5 w-5" />
+              </button>
             </div>
           </div>
-        </div>
+        </DisclosurePanel>
+      </Disclosure>
+
+      <!-- Pets for Adoption -->
+      <Disclosure v-slot="{ open }" as="div" class="mb-6">
+        <DisclosureButton class="card w-full flex justify-between items-center p-4">
+          <h2 class="text-xl font-semibold">Meus Pets para Adoção</h2>
+          <ChevronDown
+            class="h-5 w-5 transform transition-transform duration-200"
+            :class="{ 'rotate-180': open }"
+          />
+        </DisclosureButton>
+        <DisclosurePanel class="mt-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="pet in myPets" :key="pet.id" class="relative">
+              <PetCard :pet="pet" />
+              <div class="absolute top-2 right-2 flex gap-2">
+                <button
+                  @click="togglePetStatus(pet)"
+                  class="p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors"
+                  :title="pet.status === 'paused' ? 'Reativar anúncio' : 'Pausar anúncio'"
+                >
+                  <Play v-if="pet.status === 'paused'" class="w-5 h-5 text-green-500" />
+                  <Pause v-else class="w-5 h-5 text-yellow-500" />
+                </button>
+                <button
+                  @click="confirmDelete(pet)"
+                  class="p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors"
+                  title="Excluir anúncio"
+                >
+                  <Trash2 class="w-5 h-5 text-red-500" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </DisclosurePanel>
+      </Disclosure>
+
+      <!-- Adopted Pets -->
+      <Disclosure v-slot="{ open }" as="div" class="mb-6">
+        <DisclosureButton class="card w-full flex justify-between items-center p-4">
+          <h2 class="text-xl font-semibold">Pets Adotados</h2>
+          <ChevronDown
+            class="h-5 w-5 transform transition-transform duration-200"
+            :class="{ 'rotate-180': open }"
+          />
+        </DisclosureButton>
+        <DisclosurePanel class="mt-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <PetCard v-for="pet in adoptedPets" :key="pet.id" :pet="pet" />
+          </div>
+        </DisclosurePanel>
+      </Disclosure>
+
+      <!-- My Adoption Requests -->
+      <Disclosure v-if="myAdoptionRequests.length > 0" v-slot="{ open }" as="div" class="mb-6">
+        <DisclosureButton class="card w-full flex justify-between items-center p-4">
+          <h2 class="text-xl font-semibold">Meus Pedidos de Adoção</h2>
+          <ChevronDown
+            class="h-5 w-5 transform transition-transform duration-200"
+            :class="{ 'rotate-180': open }"
+          />
+        </DisclosureButton>
+        <DisclosurePanel class="mt-2">
+          <div class="grid grid-cols-1 gap-4">
+            <div
+              v-for="request in myAdoptionRequests"
+              :key="request.id"
+              class="card p-4"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold">{{ request.petData.name }}</h3>
+                  <p class="text-sm text-gray-600">
+                    Solicitado em: {{ new Date(request.createdAt.toDate()).toLocaleDateString() }}
+                  </p>
+                  <p class="mt-2">
+                    Status:
+                    <span
+                      :class="{
+                        'text-yellow-600': request.status === 'pending',
+                        'text-green-600': request.status === 'approved',
+                        'text-red-600': request.status === 'rejected'
+                      }"
+                    >
+                      {{ 
+                        request.status === 'pending' ? 'Pendente' :
+                        request.status === 'approved' ? 'Aprovado' :
+                        'Recusado'
+                      }}
+                    </span>
+                  </p>
+                </div>
+                <router-link
+                  :to="`/pet/${request.petId}`"
+                  class="btn-primary text-sm"
+                >
+                  Ver Pet
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </DisclosurePanel>
+      </Disclosure>
+    </div>
+  </div>
+
+  <!-- Modal de confirmação de exclusão -->
+  <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+      <h3 class="text-xl font-bold mb-4">Confirmar Exclusão</h3>
+      <p>Tem certeza que deseja excluir o anúncio de {{ petToDelete?.name }}?</p>
+      <p class="text-sm text-gray-600 mt-2">Esta ação não pode ser desfeita.</p>
+      <div class="flex justify-end space-x-4 mt-6">
+        <button
+          @click="showDeleteModal = false"
+          class="px-4 py-2 text-gray-600 hover:text-gray-800"
+        >
+          Cancelar
+        </button>
+        <button
+          @click="deletePet"
+          class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Excluir
+        </button>
       </div>
     </div>
   </div>

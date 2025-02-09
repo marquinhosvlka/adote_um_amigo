@@ -8,6 +8,7 @@ import axios from 'axios';
 const router = useRouter();
 const authStore = useAuthStore();
 const petsStore = usePetsStore();
+const showSuccessModal = ref(false);
 
 interface Estado {
   sigla: string;
@@ -22,11 +23,12 @@ const petData = ref({
   species: '',
   breed: '',
   age: '',
+  ageUnit: 'years',
   size: '',
   description: '',
   city: '',
   state: '',
-  imageUrl: '', // Changed from File to URL string
+  imageUrl: '',
 });
 
 const error = ref('');
@@ -40,6 +42,13 @@ const errors = ref({
 const estados = ref<Estado[]>([]);
 const cidades = ref<Cidade[]>([]);
 
+const maxAges: Record<string, number> = {
+  days: 90,
+  weeks: 52,
+  months: 36,
+  years: 30
+};
+
 const validateForm = () => {
   errors.value = {
     name: '',
@@ -50,32 +59,30 @@ const validateForm = () => {
   };
   let isValid = true;
 
-  // Validate name (2-30 characters)
   if (petData.value.name.length < 2 || petData.value.name.length > 30) {
     errors.value.name = 'O nome deve ter entre 2 e 30 caracteres';
     isValid = false;
   }
 
-  // Validate breed (2-30 characters)
   if (petData.value.breed.length < 2 || petData.value.breed.length > 30) {
     errors.value.breed = 'A raça deve ter entre 2 e 30 caracteres';
     isValid = false;
   }
 
-  // Validate age (number between 0 and 30)
   const age = parseInt(petData.value.age);
-  if (isNaN(age) || age < 0 || age > 30) {
-    errors.value.age = 'A idade deve ser um número entre 0 e 30';
+  const currentAgeUnit = petData.value.ageUnit as keyof typeof maxAges;
+  const maxAge = maxAges[currentAgeUnit];
+  
+  if (isNaN(age) || age < 0 || age > maxAge) {
+    errors.value.age = `A idade deve ser um número entre 0 e ${maxAge} ${currentAgeUnit}`;
     isValid = false;
   }
 
-  // Validate description (10-500 characters)
   if (petData.value.description.length < 10 || petData.value.description.length > 500) {
     errors.value.description = 'A descrição deve ter entre 10 e 500 caracteres';
     isValid = false;
   }
 
-  // Validate image URL
   if (!petData.value.imageUrl) {
     errors.value.imageUrl = 'A URL da imagem é obrigatória';
     isValid = false;
@@ -129,7 +136,11 @@ const handleSubmit = async () => {
     };
 
     await petsStore.createPet(petDataToSend);
-    router.push('/profile');
+    showSuccessModal.value = true;
+    
+    setTimeout(() => {
+      router.push('/profile');
+    }, 3000);
   } catch (e) {
     error.value = 'Erro ao criar anúncio. Tente novamente.';
   }
@@ -188,17 +199,32 @@ onMounted(() => {
           <p class="text-sm text-gray-500 mt-1">{{ petData.breed.length }}/30</p>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Idade (anos)</label>
-          <input
-            v-model="petData.age"
-            type="number"
-            required
-            min="0"
-            max="30"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-            :class="{ 'border-red-500': errors.age }"
-          />
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700">Idade</label>
+            <input
+              v-model="petData.age"
+              type="number"
+              required
+              min="0"
+              :max="petData.ageUnit === 'days' ? 90 : petData.ageUnit === 'weeks' ? 52 : petData.ageUnit === 'months' ? 36 : 30"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+              :class="{ 'border-red-500': errors.age }"
+            />
+          </div>
+          <div class="w-1/2">
+            <label class="block text-sm font-medium text-gray-700">Unidade</label>
+            <select
+              v-model="petData.ageUnit"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
+            >
+              <option value="days">Dias</option>
+              <option value="weeks">Semanas</option>
+              <option value="months">Meses</option>
+              <option value="years">Anos</option>
+            </select>
+          </div>
           <p v-if="errors.age" class="text-red-500 text-sm mt-1">{{ errors.age }}</p>
         </div>
 
@@ -302,6 +328,18 @@ onMounted(() => {
         </button>
       </div>
     </form>
+  </div>
+
+  <!-- Modal de sucesso -->
+  <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div class="text-center">
+        <div class="text-green-500 text-5xl mb-4">✓</div>
+        <h3 class="text-xl font-bold mb-2">Pet cadastrado com sucesso!</h3>
+        <p class="text-gray-600">Seu anúncio foi criado e já está disponível para visualização.</p>
+        <p class="text-sm text-gray-500 mt-4">Redirecionando para seu perfil...</p>
+      </div>
+    </div>
   </div>
 </template>
 

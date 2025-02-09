@@ -26,6 +26,7 @@ export class PetService implements IPetService {
       ...data,
       status: 'available',
       images: [],
+      ageUnit: data.ageUnit || 'years',
       createdAt: new Date()
     });
   }

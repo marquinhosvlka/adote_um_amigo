@@ -44,6 +44,7 @@ const handleClick = () => {
     emit('markAsRead', props.id);
     router.push(`/pet/${props.petId}`);
   }
+  emit('close');
 };
 
 const handleClose = (e: Event) => {

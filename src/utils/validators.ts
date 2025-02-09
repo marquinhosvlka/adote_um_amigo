@@ -16,7 +16,9 @@ export const isValidName = (name: string): boolean => {
 };
 
 // Format phone number to (XX) XXXXX-XXXX
-export const formatPhone = (phone: string): string => {
+export const formatPhone = (phone: string | undefined | null): string => {
+  if (!phone) return '';
+  
   const cleaned = phone.replace(/\D/g, '');
   const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
   if (match) {

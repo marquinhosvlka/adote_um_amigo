@@ -1,183 +1,3 @@
-<template>
-  <div v-if="loading" class="text-center py-8">
-    <p class="text-gray-600">Carregando...</p>
-  </div>
-
-  <div v-else-if="pet" class="max-w-4xl mx-auto">
-    <!-- Notification -->
-    <div
-      v-if="showNotification"
-      class="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 flex items-center justify-between max-w-md"
-    >
-      <div>
-        <p class="mb-2">{{ notificationMessage }}</p>
-        <p class="text-sm">O dono do pet entrará em contato em breve através do email, telefone ou WhatsApp informado.</p>
-      </div>
-      <button
-        @click="showNotification = false"
-        class="ml-4 text-white hover:text-gray-200 focus:outline-none"
-      >
-        <X class="h-5 w-5" />
-      </button>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <div>
-        <img
-          :src="pet.imageUrl"
-          :alt="pet.name"
-          class="w-full h-64 object-cover rounded-lg shadow-md"
-        />
-      </div>
-
-      <div class="space-y-6">
-        <div>
-          <h1 class="text-3xl font-bold text-primary">{{ pet.name }}</h1>
-          <p class="text-gray-600">{{ pet.breed }} • {{ pet.age }} anos</p>
-          <p class="text-gray-600">{{ pet.city }}, {{ pet.state }}</p>
-          <p v-if="pet.status === 'adopted'" class="text-green-500 font-bold">
-            Status: Adotado
-          </p>
-        </div>
-
-        <div class="card">
-          <h2 class="text-xl font-semibold mb-2">Sobre {{ pet.name }}</h2>
-          <p class="text-gray-700">{{ pet.description }}</p>
-        </div>
-
-        <div v-if="owner" class="card">
-          <h2 class="text-xl font-semibold mb-2">Informações do Dono</h2>
-          <p><strong>Nome:</strong> {{ owner.name }}</p>
-          <p><strong>Telefone:</strong> {{ formatPhone(owner.phone) }}</p>
-        </div>
-
-        <!-- Lista de pedidos de adoção (visível apenas para o dono do pet) -->
-        <div
-          v-if="authStore.user?.uid === pet.userId && adoptionRequests.length > 0 && pet.status !== 'adopted'"
-          class="card"
-        >
-          <h2 class="text-xl font-semibold mb-4">Pedidos de Adoção</h2>
-          <div class="space-y-4">
-            <div
-              v-for="request in adoptionRequests"
-              :key="request.id"
-              class="border rounded-md p-4"
-            >
-              <p><strong>Nome:</strong> {{ request.adopterInfo?.name }}</p>
-              <p><strong>Email:</strong> {{ request.adopterInfo?.email }}</p>
-              <p><strong>Telefone:</strong> {{ formatPhone(request.adopterInfo?.phone) }}</p>
-              <p><strong>Motivo:</strong> {{ request.reason }}</p>
-              <div class="flex space-x-4 mt-4">
-                <button
-                  v-if="request.status === 'pending'"
-                  @click="handleAdoptionResponse(request.id, request.adopterId, 'approved')"
-                  class="btn-primary"
-                >
-                  Aceitar
-                </button>
-                <button
-                  v-if="request.status === 'pending'"
-                  @click="handleAdoptionResponse(request.id, request.adopterId, 'rejected')"
-                  class="btn-secondary"
-                >
-                  Recusar
-                </button>
-                <span
-                  v-else
-                  :class="{
-                    'text-green-500': request.status === 'approved',
-                    'text-red-500': request.status === 'rejected'
-                  }"
-                >
-                  {{ request.status === 'approved' ? 'Aprovado' : 'Recusado' }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Formulário de Adoção -->
-        <div
-          v-if="
-            authStore.user?.uid !== pet.userId &&
-            pet.status !== 'adopted' &&
-            !showNotification
-          "
-        >
-          <div v-if="showAdoptionForm" class="card">
-            <h3 class="text-xl font-semibold mb-4">Solicitar Adoção</h3>
-            <form @submit.prevent="handleAdoptionRequest" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Nome</label>
-                <input
-                  v-model="adopterName"
-                  type="text"
-                  required
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  v-model="adopterEmail"
-                  type="email"
-                  required
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Telefone</label>
-                <input
-                  v-model="adopterPhone"
-                  type="tel"
-                  required
-                  @input="adopterPhone = formatPhone(adopterPhone)"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700">
-                  Por que você quer adotar {{ pet.name }}?
-                </label>
-                <textarea
-                  v-model="adoptionReason"
-                  required
-                  rows="4"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20"
-                ></textarea>
-              </div>
-
-              <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-
-              <div class="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  @click="showAdoptionForm = false"
-                  class="btn-secondary"
-                >
-                  Cancelar
-                </button>
-                <button type="submit" class="btn-primary">Enviar</button>
-              </div>
-            </form>
-          </div>
-
-          <button
-            v-else
-            @click="showAdoptionForm = true"
-            class="btn-primary w-full"
-          >
-            Quero Adotar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -187,7 +7,17 @@ import { useAuthStore } from '../stores/auth';
 import { useAdoptionsStore } from '../stores/adoptions';
 import { useNotificationsStore } from '../stores/notifications';
 import { isValidEmail, isValidPhone, isValidName, formatPhone } from '../utils/validators';
-import { X } from 'lucide-vue-next';
+import { X, Maximize2 } from 'lucide-vue-next';
+
+const formatAge = (age: number, ageUnit: 'days' | 'weeks' | 'months' | 'years') => {
+  const units: Record<string, string> = {
+    days: 'dias',
+    weeks: 'semanas',
+    months: 'meses',
+    years: 'anos'
+  };
+  return `${age} ${units[ageUnit]}`;
+};
 
 const route = useRoute();
 const router = useRouter();
@@ -207,6 +37,7 @@ const adopterPhone = ref('');
 const error = ref('');
 const notificationMessage = ref('');
 const showNotification = ref(false);
+const showImageModal = ref(false);
 
 const validateAdoptionForm = () => {
   error.value = '';
@@ -357,7 +188,7 @@ const handleAdoptionRequest = async () => {
     showNotification.value = true;
     setTimeout(() => {
       showNotification.value = false;
-    }, 8000); // Increased timeout to give more time to read the message
+    }, 8000);
     
     // Reset form and close it
     showAdoptionForm.value = false;
@@ -417,6 +248,62 @@ onMounted(fetchPetDetails);
 </script>
 
 <style scoped>
+.image-section {
+  width: 100%;
+}
+
+.image-container {
+  width: 100%;
+  height: 500px;
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+.pet-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.image-container:hover .pet-image {
+  transform: scale(1.05);
+}
+
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.image-container:hover .image-overlay {
+  background-color: rgba(0, 0, 0, 0.3);
+  opacity: 1;
+}
+
+.view-full-button {
+  background-color: white;
+  color: #1f2937;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.view-full-button:hover {
+  transform: scale(1.05);
+}
+
 .card {
   @apply bg-white p-6 rounded-lg shadow-md;
 }

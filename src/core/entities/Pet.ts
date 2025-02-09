@@ -6,6 +6,7 @@ export interface Pet extends IEntity {
   species: 'dog' | 'cat' | 'other';
   breed: string;
   age: number;
+  ageUnit: 'days' | 'weeks' | 'months' | 'years';
   size: 'small' | 'medium' | 'large';
   description: string;
   images: string[];
